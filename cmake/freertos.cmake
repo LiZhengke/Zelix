@@ -1,0 +1,35 @@
+# cmake/freertos.cmake
+include(FetchContent)
+
+FetchContent_Declare(
+    freertos
+    GIT_REPOSITORY https://github.com/FreeRTOS/FreeRTOS-Kernel.git
+    GIT_TAG        V11.3.0
+)
+FetchContent_Populate(freertos)
+
+add_library(freertos_kernel STATIC
+    ${freertos_SOURCE_DIR}/tasks.c
+    ${freertos_SOURCE_DIR}/queue.c
+    ${freertos_SOURCE_DIR}/list.c
+    ${freertos_SOURCE_DIR}/timers.c
+    ${freertos_SOURCE_DIR}/event_groups.c
+    ${freertos_SOURCE_DIR}/stream_buffer.c
+)
+
+target_sources(freertos_kernel PRIVATE
+    ${CMAKE_SOURCE_DIR}/platform/x86/port/port.c
+    ${CMAKE_SOURCE_DIR}/platform/x86/port/portasm.S
+)
+
+target_include_directories(freertos_kernel PRIVATE
+    ${freertos_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/kernel/include
+    ${CMAKE_SOURCE_DIR}/platform/x86/inc
+)
+
+target_compile_options(freertos_kernel PRIVATE
+    -m32
+    -ffreestanding
+    -fno-builtin
+)
