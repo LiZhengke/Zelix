@@ -7,9 +7,6 @@
 extern void vPortStartFirstTask(void);
 extern void vPortYieldCall(void);
 
-/* 当前任务栈指针（FreeRTOS 内部会用） */
-volatile uint32_t *pxCurrentTCB = NULL;
-
 /* =========================
    启动调度器
    ========================= */
@@ -25,6 +22,13 @@ BaseType_t xPortStartScheduler(void)
 void vPortYield(void)
 {
     vPortYieldCall();
+}
+
+void vPortEndScheduler(void)
+{
+    for (;;) {
+        __asm__ volatile ("cli; hlt");
+    }
 }
 
 /* =========================

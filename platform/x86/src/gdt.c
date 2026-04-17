@@ -22,9 +22,6 @@ struct gdt_ptr {
 static struct gdt_entry gdt[6];
 static struct gdt_ptr   gp;
 
-// Global TSS instance
-extern struct tss tss_entry;
-
 // External assembly function: used to load GDTR and flush segment registers
 extern void gdt_flush(uint32_t gdt_ptr_addr);
 

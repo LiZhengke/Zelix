@@ -29,20 +29,21 @@
  * Early boot code — runs at PHYSICAL addresses (no paging yet).
  * .boot section has VMA == LMA (physical).
  * ====================================================== */
-.section .boot, "ax"
+.section .bootdata, "aw"
 .code32
-.align 4
 
 .if configUSE_PAGE_ASMBLE_CODE == 1
 /*
  * Boot page directory — 4096 bytes, 4K-aligned.
- * Placed in .boot so it is available before we clear BSS.
+ * Placed in boot data so it is available before we clear BSS.
  */
 .align 4096
 boot_page_directory:
     .fill 1024, 4, 0                    /* 1024 entries, all zero initially */
 .endif /* configUSE_PAGE_ASMBLE_CODE */
 
+.section .boot, "ax"
+.align 4
 _start:
     cli
 .if configUSE_PAGE_ASMBLE_CODE == 1

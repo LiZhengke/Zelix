@@ -6,6 +6,15 @@ ENTRY(_start)
 KERNEL_VMA = 0xC0000000;   /* Virtual base address. */
 KERNEL_LMA = 0x00100000;   /* Physical load address. */
 
+PHDRS
+{
+    boot PT_LOAD FLAGS(5);
+    text PT_LOAD FLAGS(5);
+    bootdata PT_LOAD FLAGS(6);
+    data PT_LOAD FLAGS(6);
+    stack PT_GNU_STACK FLAGS(6);
+}
+
 SECTIONS
 {
     /* ========================================
@@ -16,8 +25,13 @@ SECTIONS
     .boot ALIGN(4K) : AT(KERNEL_LMA)
     {
         KEEP(*(.multiboot))
-        *(.boot*)
-    }
+        *(.boot)
+    } :boot
+
+    .bootdata ALIGN(4K) : AT(ADDR(.bootdata))
+    {
+        *(.bootdata)
+    } :bootdata
 
     /* ========================================
      * 2. Switch to high-half virtual addresses.
@@ -32,7 +46,7 @@ SECTIONS
         *(.text*)
         *(.rodata*)
         *(.eh_frame)
-    }
+    } :text
 
     /* ----------------------------------------------------------
      * 3. User program binary blobs (User Blobs)
@@ -45,7 +59,7 @@ SECTIONS
         *(.user_bin)   /* Corresponds to .section .user_bin in assembly. */
         . = ALIGN(4K);
         _user_blobs_end = .;
-    }
+    } :data
 
     /* -------------------- */
     /* Kernel data section */
@@ -55,7 +69,13 @@ SECTIONS
         __data_start = .;
         *(.data*)
         __data_end = .;
-    }
+    } :data
+
+    .got ALIGN(4K) : AT(ADDR(.got) - KERNEL_VMA)
+    {
+        *(.got)
+        *(.got.plt)
+    } :data
 
     /* -------------------- */
     /* Kernel BSS section */
@@ -66,7 +86,7 @@ SECTIONS
         *(.bss*)
         *(COMMON)
         __bss_end = .;
-    }
+    } :data
 
     /* -------------------- */
     /* Kernel heap and stack */
@@ -77,7 +97,7 @@ SECTIONS
     {
         *(.heap)
         . += 64K;  /* Reserve 64KB heap space. */
-    }
+    } :data
     __heap_end = .;
 
     . = ALIGN(16);

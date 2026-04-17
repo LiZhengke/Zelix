@@ -20,6 +20,9 @@ typedef uint32_t phys_addr_t;  /* Represents a physical address value (numeric o
 typedef uint32_t virt_addr_t;  /* Represents a virtual address. */
 void init_paging(void);
 void flush_tlb(uint32_t virtual_addr);
+pde_t* get_page_directory(void);
+pte_t* get_page_table(void);
+pte_t* get_page_table2(void);
 #define KERNEL_VIRT_START 0xC0000000
 #define KERNEL_VIRT_END   0xFFFFFFFF
 #define KERNEL_OFFSET     KERNEL_VIRT_START

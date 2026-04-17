@@ -7,29 +7,29 @@
 #define configSUPPORT_PAGE_TABLE_TWO 1
 
 /* Page directory must be aligned to a 4KB boundary */
-__attribute__((section(".boot"), aligned(PAGE_SIZE)))
+__attribute__((section(".bootdata"), aligned(PAGE_SIZE)))
 static pde_t page_directory[1024] __attribute__((aligned(PAGE_SIZE)));
 
 /* First page table, used to map the first 4MB where the kernel resides */
-__attribute__((section(".boot"), aligned(PAGE_SIZE)))
+__attribute__((section(".bootdata"), aligned(PAGE_SIZE)))
 static pte_t page_table[1024] __attribute__((aligned(PAGE_SIZE)));
 
 #if configSUPPORT_PAGE_TABLE_TWO == 1
 /* Second page table, used to map the next 4MB where the kernel resides */
-__attribute__((section(".boot"), aligned(PAGE_SIZE)))
+__attribute__((section(".bootdata"), aligned(PAGE_SIZE)))
 static pte_t page_table2[1024] __attribute__((aligned(PAGE_SIZE)));
 #endif
 
-inline pde_t* get_page_directory() {
+pde_t* get_page_directory(void) {
     return page_directory;
 }
 
-inline pte_t* get_page_table() {
+pte_t* get_page_table(void) {
     return page_table;
 }
 
 #if configSUPPORT_PAGE_TABLE_TWO == 1
-inline pte_t* get_page_table2() {
+pte_t* get_page_table2(void) {
     return page_table2;
 }
 #endif
@@ -83,6 +83,6 @@ void init_paging() {
 }
 
 /* Flush the TLB entry for a specific virtual address */
-inline void flush_tlb(uint32_t virtual_addr) {
+void flush_tlb(uint32_t virtual_addr) {
    __asm__ volatile("invlpg (%0)" : : "r" (virtual_addr) : "memory");
 }
