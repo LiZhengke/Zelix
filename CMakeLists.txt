@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
+include(cmake/zelix-target-defaults.cmake)
 include(cmake/freertos.cmake)
 
 project(Zelix
@@ -9,7 +10,7 @@ project(Zelix
 # Common defaults for C targets in this workspace.
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
-set(CMAKE_C_EXTENSIONS OFF)
+set(CMAKE_C_EXTENSIONS ON)
 
 # Keep reusable cmake modules in the local cmake/ directory.
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -29,27 +30,28 @@ foreach(subdir IN LISTS ZELIX_SUBDIRS)
 	endif()
 endforeach()
 
-target_compile_options(${PROJECT_NAME} PRIVATE
-    -ffreestanding
-    -fno-builtin
-	-fno-stack-protector
-	-fno-pic
-    -m32
-    -std=gnu11
-)
+zelix_apply_common_compile_options(${PROJECT_NAME})
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
-    freertos_kernel
+	kernel_libc
 	x86_platform
+	kernel_libc
 	mm
 )
 
 target_link_options(${PROJECT_NAME} PRIVATE
 	-nostdlib
     -nostartfiles
+    -no-pie
 	-m32
 	-Wl,--build-id=none
     -T ${CMAKE_SOURCE_DIR}/platform/x86/linker.ld
     -Wl,-Map=${PROJECT_NAME}.map
     -Wl,--cref
+)
+
+target_include_directories(${PROJECT_NAME} PRIVATE
+	${CMAKE_SOURCE_DIR}/kernel/include
+	${CMAKE_SOURCE_DIR}/kernel/mm/inc
+	${CMAKE_SOURCE_DIR}/platform/x86/inc
 )

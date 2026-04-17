@@ -15,6 +15,7 @@ add_library(freertos_kernel STATIC
     ${freertos_SOURCE_DIR}/timers.c
     ${freertos_SOURCE_DIR}/event_groups.c
     ${freertos_SOURCE_DIR}/stream_buffer.c
+    ${freertos_SOURCE_DIR}/portable/MemMang/heap_4.c
 )
 
 target_sources(freertos_kernel PRIVATE
@@ -28,8 +29,4 @@ target_include_directories(freertos_kernel PRIVATE
     ${CMAKE_SOURCE_DIR}/platform/x86/inc
 )
 
-target_compile_options(freertos_kernel PRIVATE
-    -m32
-    -ffreestanding
-    -fno-builtin
-)
+zelix_apply_common_compile_options(freertos_kernel)

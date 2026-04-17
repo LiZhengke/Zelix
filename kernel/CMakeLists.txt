@@ -2,6 +2,7 @@
 message("PROJECT_NAME: ${PROJECT_NAME}")
 
 set(KERNEL_SUBDIRS
+    libc
     proc
     thread
     syscall
@@ -21,4 +22,3 @@ add_executable(${PROJECT_NAME}
     # mm/mm.c
     # syscall/sys_exit.c
 )
-
