@@ -1,5 +1,6 @@
 /* Page directory / page table entry common attribute bits */
 #include <stddef.h>
+#include <string.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include "mmu.h"
