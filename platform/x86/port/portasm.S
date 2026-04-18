@@ -27,10 +27,11 @@ vPortStartFirstTask:
 .align 4
 .func vPortYieldCall
 vPortYieldCall:
+    cli
     pushal
 
     movl pxCurrentTCB, %eax
-    movl (%eax), %esp
+    movl %esp, (%eax)
 
     call vTaskSwitchContext
 
@@ -38,7 +39,7 @@ vPortYieldCall:
     movl    (%eax), %esp
 
     popal
-    ret
+    iret
 .endfunc
 
 .align 4
@@ -72,6 +73,10 @@ _skip_context_switch:
 
     movl    pxCurrentTCB, %eax
     movl    (%eax), %esp
+
+    /* Acknowledge IRQ0 on master PIC so the next tick can be delivered. */
+    movb    $0x20, %al
+    outb    %al, $0x20
 
     popal
 

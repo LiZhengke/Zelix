@@ -2,6 +2,7 @@
 #define PORTMACRO_H
 
 #include <stdint.h>
+#include "idt.h"
 
 /* =========================================================
  * 1. 基础类型定义
@@ -42,10 +43,11 @@ static inline void portENABLE_INTERRUPTS(void)
 
 static inline void portYIELD(void)
 {
+    __asm__ volatile ( "int %0" : : "i" ( portAPIC_YIELD_INT_VECTOR ) : "memory" );
+}
+
 #define portTASK_FUNCTION_PROTO( vFunction, pvParameters )    void vFunction( void * pvParameters )
 #define portTASK_FUNCTION( vFunction, pvParameters )          void vFunction( void * pvParameters )
-    __asm__ volatile ("int $0x80");   /* 或你的 syscall/trap */
-}
 
 /* =========================================================
  * 4. Tick ISR hook
@@ -65,11 +67,5 @@ static inline void portYIELD(void)
  */
 
 void vPortYieldFromISR(void);
-
-/* =========================================================
- * 6. Tick rate
- * ========================================================= */
-
-#define configTICK_RATE_HZ 1000
 
 #endif /* PORTMACRO_H */
