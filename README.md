@@ -1,86 +1,99 @@
 # Zelix
 
-Zelix is an operating system project scaffold with a modular kernel, user-space
-components, and platform-specific code.
+Zelix is an experimental i486 OS kernel project using FreeRTOS as the core
+scheduler, with an x86 platform port, kernel-side libc, and modular kernel
+subsystems.
 
 ## Repository Layout
 
 ```text
 Zelix/
 ├── kernel/
-│   ├── proc/
-│   ├── thread/
-│   ├── syscall/
-│   ├── mm/
 │   ├── fs/
+│   ├── libc/
+│   ├── mm/
 │   ├── sched/
-│   ├── include/
+│   ├── syscall/
+│   ├── task/
+│   ├── gdbcmds
+│   ├── main.c
 │   └── CMakeLists.txt
+├── platform/
+│   └── x86/
+│       ├── inc/
+│       ├── port/
+│       ├── src/
+│       ├── linker.ld
+│       └── CMakeLists.txt
 ├── user/
 │   ├── libc/
 │   ├── bin/
-│   ├── include/
 │   ├── linker/
 │   └── CMakeLists.txt
-├── platform/
-│   ├── x86/
-│   └── CMakeLists.txt
-├── include/
-│   └── zelix/
 ├── third_party/
-│   └── CMakeLists.txt
+├── include/
 ├── cmake/
 └── CMakeLists.txt
 ```
 
-## Build
+## Build (i486)
 
-The project uses CMake. For the i486 flat-memory kernel build, configure with
-the repository toolchain file and use a dedicated build directory.
-
-### Configure an i486 Build
+Configure:
 
 ```bash
 cmake -S . -B build-i486 -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain-i486-flat.cmake
 ```
 
-### Build
+Build:
 
 ```bash
 cmake --build build-i486
 ```
 
-### Reconfigure from Scratch
+Clean rebuild:
 
-If `build-i486/` was created without the toolchain file, remove it and
-configure again:
+```bash
+cmake --build build-i486 --clean-first
+```
+
+If `build-i486/` was created with the wrong toolchain settings:
 
 ```bash
 rm -rf build-i486
 cmake -S . -B build-i486 -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain-i486-flat.cmake
+cmake --build build-i486
 ```
 
-### Generated Artifacts
+## Quick Run (QEMU)
 
-After a successful build, the main kernel executable and map file are written to:
+Example run command:
+
+```bash
+/opt/qemu-7.2/bin/qemu-system-i386 \
+  -cpu 486 \
+  -m 128M \
+  -bios /home/max/work/freertos/FreeRTOS-Kernel/i486-flat/bootloader/build/bios.rom \
+  -kernel build-i486/kernel/Zelix \
+  -nographic
+```
+
+Timed run for log capture:
+
+```bash
+timeout 12 /opt/qemu-7.2/bin/qemu-system-i386 -cpu 486 -m 128M \
+  -bios /home/max/work/freertos/FreeRTOS-Kernel/i486-flat/bootloader/build/bios.rom \
+  -kernel build-i486/kernel/Zelix -nographic 2>&1
+```
+
+## Output Artifacts
 
 ```text
 build-i486/kernel/Zelix
 build-i486/kernel/Zelix.map
 ```
 
-## Notes
+## For Contributors
 
-- The first configure step fetches the FreeRTOS kernel with CMake `FetchContent`,
-  so network access is required unless the dependency is already available
-  locally.
-- The toolchain file sets platform-level defaults for the i486 target. Project
-  compile defaults shared by multiple targets are centralized in
-  `cmake/zelix-target-defaults.cmake`.
-
-## Current Status
-
-The repository now contains a bootable kernel-oriented build with platform
-support under `platform/x86`, kernel-side libc code under `kernel/libc`, and
-memory-management code under `kernel/mm`. The tree is still evolving, but the
-main i486 CMake build is active and usable.
+- Start with this README for build/run basics.
+- See [kernel/DEVELOPMENT.md](kernel/DEVELOPMENT.md) for port internals,
+  context-switch details, interrupt flow, and troubleshooting.
