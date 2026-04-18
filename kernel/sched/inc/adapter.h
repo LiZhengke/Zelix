@@ -3,8 +3,20 @@
 
 #include "FreeRTOS.h"
 #include "task.h"
+#include "ktask.h"
 
-struct task;
+void *sched_task_alloc(size_t size);
+void sched_task_free(void *ptr);
+BaseType_t sched_task_create(TaskFunction_t entry,
+                             const char *name,
+                             uint16_t stack_size,
+                             void *arg,
+                             UBaseType_t priority,
+                             TaskHandle_t *handle);
+void sched_start(void);
+void sched_delay(TickType_t ticks);
+TickType_t sched_task_get_tick_count(void);
+TaskHandle_t sched_current_handle(void);
 
 /* 绑定 */
 void sched_bind_task(TaskHandle_t tcb, struct task *task);

@@ -1,8 +1,7 @@
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdint.h>
-
-extern void putchar(char c);
+#include <stdio.h>
 
 int puts(const char *__s)
 {
@@ -94,9 +93,7 @@ static void print_dec_unsigned(unsigned long val)
 }
 
 static int vprintf_internal(const char *__restrict __format, va_list __ap);
-int printf_va(const char *__restrict __format, va_list *__ap);
-
-int printf (const char *__restrict __format, ...)
+int printf(const char *__restrict __format, ...)
 {
     va_list ap;
     int ret;

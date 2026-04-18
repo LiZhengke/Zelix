@@ -1,5 +1,5 @@
 #include <stdint.h>
-
+#include <stdio.h>
 #include "io.h"
 
 #define COM1_PORT 0x3F8
@@ -29,7 +29,7 @@ static void serial_init(void)
     g_serial_ready = 1;
 }
 
-void putchar(char c)
+int putchar(int c)
 {
     if (!g_serial_ready) {
         serial_init();
@@ -43,4 +43,5 @@ void putchar(char c)
     }
 
     outb(COM1_PORT, (uint8_t)c);
+    return c;
 }

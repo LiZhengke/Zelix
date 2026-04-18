@@ -5,6 +5,7 @@
 
 struct mm_struct;
 struct files_struct;
+typedef void (*task_entry_t)(void *arg);
 
 /* =========================
    task 状态
@@ -31,7 +32,8 @@ struct task {
     uint32_t *user_stack_top;
 
     /* 入口 */
-    uint32_t *entry;
+    task_entry_t entry;
+    void *arg;
 
     /* 状态 */
     enum task_state state;
@@ -45,7 +47,10 @@ struct task {
 };
 
 /* API */
-struct task *task_create(const char *name, void *entry);
+struct task *task_create(const char *name, task_entry_t entry, void *arg);
+struct task *task_system_start(const char *name, task_entry_t entry, void *arg);
+void task_scheduler_start(void);
 void task_destroy(struct task *t);
+void kernel_task_entry(void *arg);
 
 void do_exit(int code);

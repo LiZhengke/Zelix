@@ -1,93 +1,60 @@
-#include "task.h"
-#include "mm/mm.h"
-#include "sched/adapter.h"
-
 #include <string.h>
-#include <stdlib.h>   // 暂时可用，后面替换
+#include "ktask.h"
+#include "adapter.h"
+#include "arch.h"
+#include "stdio.h"
 
 #define STACK_SIZE 4096
-#define USER_STACK_SIZE 4096
-
-#define USER_CS 0x1B
-#define USER_DS 0x23
 
 static struct task *task_list = NULL;
 
 static struct task *alloc_task(void)
 {
-    struct task *t = malloc(sizeof(*t));
+    struct task *t = sched_task_alloc(sizeof(*t));
     if (!t) return NULL;
 
     memset(t, 0, sizeof(*t));
     return t;
 }
 
-static void *alloc_user_stack(struct task *t)
-{
-    void *stack = malloc(USER_STACK_SIZE);
-    return (uint8_t *)stack + USER_STACK_SIZE;
-}
-
-extern void user_exit_trampoline(void);
-
-static void setup_user_context(struct task *t)
-{
-    uint32_t *sp = (uint32_t *)t->user_stack_top;
-
-    /* main return → exit */
-    *(--sp) = (uint32_t)user_exit_trampoline;
-
-    t->user_ctx.eip = (uint32_t)t->entry;
-    t->user_ctx.esp = (uint32_t)sp;
-    t->user_ctx.eflags = 0x202;
-
-    t->user_ctx.eax = 0;
-    t->user_ctx.ebx = 0;
-    t->user_ctx.ecx = 0;
-    t->user_ctx.edx = 0;
-}
-
-extern void enter_user_mode(struct user_context *ctx);
-extern void restore_user_and_iret(struct user_context *ctx);
-extern void switch_to_mm(struct mm_struct *mm);
-
 void kernel_task_entry(void *arg)
 {
     struct task *t = (struct task *)arg;
 
-    /* 设置 current */
-    sched_bind_task(xTaskGetCurrentTaskHandle(), t);
+    sched_bind_task(sched_current_handle(), t);
+    t->started = 1;
 
-    switch_to_mm(t->mm);
-
-    if (!t->started) {
-        t->started = 1;
-
-        setup_user_context(t);
-        enter_user_mode(&t->user_ctx);
+    if (t->entry != NULL) {
+        t->entry(t->arg);
     }
 
-    restore_user_and_iret(&t->user_ctx);
-
-    for (;;);
+    for (;;) {
+        TickType_t tickCount = sched_task_get_tick_count();
+        if( tickCount % 100 == 0 )  /* Print every 100 ticks. */
+        {
+            printf( "kernel_task_entry Tick: %lu cpl=%d\n", ( unsigned long ) tickCount, get_cpl() );
+        }
+        sched_delay(100);
+    }
 }
 
-struct task *task_create(const char *name, void *entry)
+struct task *task_create(const char *name, task_entry_t entry, void *arg)
 {
     struct task *t = alloc_task();
-    if (!t) return NULL;
+    BaseType_t status;
+
+    if ((t == NULL) || (entry == NULL)) {
+        if (t != NULL) {
+            sched_task_free(t);
+        }
+        return NULL;
+    }
 
     t->entry = entry;
+    t->arg = arg;
     t->state = TASK_RUNNING;
 
-    /* mm（最开始可以共享 kernel mm） */
-    t->mm = create_kernel_mm();
-
-    /* 用户栈 */
-    t->user_stack_top = alloc_user_stack(t);
-
-    /* 创建 FreeRTOS task */
-    xTaskCreate(
+    status = sched_task_create(
         kernel_task_entry,
         name,
         STACK_SIZE,
@@ -96,12 +63,43 @@ struct task *task_create(const char *name, void *entry)
         &t->tcb
     );
 
-    /* ⭐ 绑定 */
-    sched_bind_task(t->tcb, t);
+    if (status != pdPASS) {
+        sched_task_free(t);
+        return NULL;
+    }
 
-    /* 加入链表 */
     t->next = task_list;
     task_list = t;
 
     return t;
+}
+
+struct task *task_system_start(const char *name, task_entry_t entry, void *arg)
+{
+    struct task *task = task_create(name, entry, arg);
+
+    if (task == NULL) {
+        return NULL;
+    }
+
+    task_scheduler_start();
+    return task;
+}
+
+void task_scheduler_start(void)
+{
+    sched_start();
+}
+
+void task_destroy(struct task *t)
+{
+    (void)t;
+}
+
+void do_exit(int code)
+{
+    (void)code;
+
+    for (;;) {
+    }
 }
