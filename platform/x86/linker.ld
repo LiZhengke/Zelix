@@ -26,6 +26,7 @@ SECTIONS
     {
         KEEP(*(.multiboot))
         *(.boot)
+        *(.boot.text)
     } :boot
 
     .bootdata ALIGN(4K) : AT(ADDR(.bootdata))

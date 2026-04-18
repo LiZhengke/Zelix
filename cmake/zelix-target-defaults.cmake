@@ -6,8 +6,10 @@ function(zelix_apply_common_compile_options target)
         $<$<COMPILE_LANGUAGE:C>:-fno-stack-protector>
         $<$<COMPILE_LANGUAGE:C>:-fno-pic>
         $<$<COMPILE_LANGUAGE:C>:-fno-pie>
+        $<$<COMPILE_LANGUAGE:C>:-g>
         $<$<COMPILE_LANGUAGE:ASM>:-m32>
         $<$<COMPILE_LANGUAGE:ASM>:-fno-pic>
         $<$<COMPILE_LANGUAGE:ASM>:-fno-pie>
+        $<$<COMPILE_LANGUAGE:ASM>:-g>
     )
 endfunction()

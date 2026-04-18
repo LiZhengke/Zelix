@@ -5,6 +5,7 @@ add_library(x86_platform STATIC
     src/page.c
     src/gdt.c
     src/idt.c
+    src/i8259.c
     src/exception.S
     src/interrupt.c
 )

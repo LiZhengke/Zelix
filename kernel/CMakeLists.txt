@@ -9,6 +9,7 @@ set(KERNEL_SUBDIRS
     mm
     fs
     sched
+    task
 )
 
 foreach(subdir IN LISTS KERNEL_SUBDIRS)

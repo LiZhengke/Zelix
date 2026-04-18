@@ -4,7 +4,10 @@ include(FetchContent)
 FetchContent_Declare(
     freertos
     GIT_REPOSITORY https://github.com/FreeRTOS/FreeRTOS-Kernel.git
-    GIT_TAG        V11.3.0
+    # GIT_TAG        V11.3.0
+    GIT_TAG        V10.4.3
+
+
 )
 FetchContent_Populate(freertos)
 
@@ -23,7 +26,7 @@ target_sources(freertos_kernel PRIVATE
     ${CMAKE_SOURCE_DIR}/platform/x86/port/portasm.S
 )
 
-target_include_directories(freertos_kernel PRIVATE
+target_include_directories(freertos_kernel PUBLIC
     ${freertos_SOURCE_DIR}/include
     ${CMAKE_SOURCE_DIR}/kernel/include
     ${CMAKE_SOURCE_DIR}/platform/x86/inc
