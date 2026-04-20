@@ -33,13 +33,14 @@ endforeach()
 zelix_apply_common_compile_options(${PROJECT_NAME})
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
-	kernel_libc
+	-Wl,--start-group
+	freertos_kernel
 	x86_platform
-	kernel_libc
 	mm
 	task
 	sched
-	freertos_kernel
+	kernel_libc
+	-Wl,--end-group
 )
 
 target_link_options(${PROJECT_NAME} PRIVATE
