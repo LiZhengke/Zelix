@@ -1,0 +1,19 @@
+set architecture i386
+set pagination off
+
+target remote :1234
+
+# Auto watch
+display/i $eip
+#display/x $eflags
+display/x $esp
+
+
+# Common breakpoints
+b _start
+b kernel_main
+b kernel_task_entry
+b vPortStartFirstTask
+b vPortYieldCall
+b init_task_main
+b return_to_user
