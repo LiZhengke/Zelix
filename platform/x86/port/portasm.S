@@ -5,12 +5,19 @@
 .extern vTaskSwitchContext
 .extern xTaskIncrementTick
 .extern ulPortYieldPending
+.extern save_user_ctx
+.extern load_user_ctx
+.extern current_task
+.extern ulTopOfSystemStack
+.extern ulInterruptNesting
 
 .global vPortStartFirstTask
 .global vPortYieldCall
 .global vPortTimerHandler
 .global vPortSysCall
 .global gdt_flush
+.global return_to_user
+
 
 .text
 
@@ -28,27 +35,42 @@ vPortStartFirstTask:
 .func vPortYieldCall
 vPortYieldCall:
     cli
-    pushal
+    PUSH_TRAP_FRAME()
 
-    movl pxCurrentTCB, %eax
-    movl %esp, (%eax)
+    call current_task
+    movl %eax, %ebx
+
+    pushl %esp
+    pushl %eax
+    call save_user_ctx
+    addl $8, %esp
 
     call vTaskSwitchContext
 
-    movl    pxCurrentTCB, %eax
-    movl    (%eax), %esp
+    call current_task
+    movl %eax, %ebx
 
-    popal
+    push %esp
+    push %eax
+    call load_user_ctx
+    add $8, %esp
+
+    POP_TRAP_FRAME()
     iret
 .endfunc
 
 .align 4
 .func vPortTimerHandler
 vPortTimerHandler:
-    pushal
+    PUSH_TRAP_FRAME()
 
-    movl    pxCurrentTCB, %eax
-    movl    %esp, (%eax)
+    call current_task
+    movl %eax, %ebx
+
+    pushl %esp
+    pushl %eax
+    call save_user_ctx
+    addl $8, %esp
 
     movl    ulTopOfSystemStack, %esp
     movl    %esp, %ebp
@@ -71,14 +93,19 @@ _skip_context_switch:
     /* Decrement the variable used to determine if a switch to a system stack is necessary. */
     subl    $1, ulInterruptNesting
 
-    movl    pxCurrentTCB, %eax
-    movl    (%eax), %esp
+    call current_task
+    movl %eax, %ebx
+
+    push %esp
+    push %eax
+    call load_user_ctx
+    add $8, %esp
 
     /* Acknowledge IRQ0 on master PIC so the next tick can be delivered. */
     movb    $0x20, %al
     outb    %al, $0x20
 
-    popal
+    POP_TRAP_FRAME()
 
     sti
     iret
@@ -195,6 +222,18 @@ gdt_flush:
     ljmp $0x08, $flush_cs
 flush_cs:
     ret
+.endfunc
+
+.align 4
+.func return_to_user
+return_to_user:
+    /* 参数：tf 在栈上 */
+    mov 4(%esp), %esp   /* 切到 tf 作为当前栈 */
+
+    POP_TRAP_FRAME()             /* 恢复用户态寄存器*/
+
+    /* iret：弹 eip, cs, eflags, esp, ss */
+    iret
 .endfunc
 
 .section .note.GNU-stack,"",@progbits

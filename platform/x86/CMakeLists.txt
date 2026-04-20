@@ -8,12 +8,14 @@ add_library(x86_platform STATIC
     src/i8259.c
     src/exception.S
     src/interrupt.c
+    src/task_context.c
 )
 
 target_include_directories(x86_platform PRIVATE
     ${CMAKE_SOURCE_DIR}/kernel/include
     ${CMAKE_SOURCE_DIR}/kernel/libc/inc
     ${CMAKE_SOURCE_DIR}/kernel/mm/inc
+    ${CMAKE_SOURCE_DIR}/kernel/task/inc
     ${CMAKE_SOURCE_DIR}/platform/x86/inc
 )
 

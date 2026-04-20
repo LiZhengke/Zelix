@@ -1,0 +1,56 @@
+#include <string.h>
+
+#include "ktask.h"
+#include "task_context.h"
+
+#define USER_CS 0x1B
+#define USER_DS 0x23
+
+void arch_task_setup_frame_context(struct task *t)
+{
+    struct trap_frame *tf =
+        (struct trap_frame *)(t->user_stack_top - sizeof(*tf));
+
+    memset(tf, 0, sizeof(*tf));
+    tf->eip = (uint32_t)t->entry;
+
+    tf->ds = tf->es = tf->fs = tf->gs = tf->ss = USER_DS;
+
+    tf->cs = USER_CS;
+    tf->eflags = 0x202;
+    tf->esp = (uint32_t)t->user_stack_top;
+
+    tf->eax = 0;
+
+    t->frame_ctx = tf;
+}
+
+void save_user_ctx(struct task *t, struct trap_frame *tf)
+{
+    t->frame_ctx->eip = tf->eip;
+    t->frame_ctx->esp = (tf->cs & 0x3) ? tf->esp : t->frame_ctx->esp;
+    t->frame_ctx->eflags = tf->eflags;
+
+    t->frame_ctx->eax = tf->eax;
+    t->frame_ctx->ebx = tf->ebx;
+    t->frame_ctx->ecx = tf->ecx;
+    t->frame_ctx->edx = tf->edx;
+    t->frame_ctx->esi = tf->esi;
+    t->frame_ctx->edi = tf->edi;
+    t->frame_ctx->ebp = tf->ebp;
+}
+
+void load_user_ctx(struct task *t, struct trap_frame *tf)
+{
+    tf->eip = t->frame_ctx->eip;
+    tf->esp = t->frame_ctx->esp;
+    tf->eflags = t->frame_ctx->eflags;
+
+    tf->eax = t->frame_ctx->eax;
+    tf->ebx = t->frame_ctx->ebx;
+    tf->ecx = t->frame_ctx->ecx;
+    tf->edx = t->frame_ctx->edx;
+    tf->esi = t->frame_ctx->esi;
+    tf->edi = t->frame_ctx->edi;
+    tf->ebp = t->frame_ctx->ebp;
+}

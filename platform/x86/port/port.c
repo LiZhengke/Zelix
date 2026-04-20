@@ -5,6 +5,7 @@
 #include "arch.h"
 #include "FreeRTOS.h"
 #include "task.h"
+#include "gdt.h"
 
 #define portINITIAL_EFLAGS               ( 0x200UL )
 
@@ -103,7 +104,7 @@ StackType_t *pxPortInitialiseStack(
 
 
     *(--pxTopOfStack) = portINITIAL_EFLAGS;         // EFLAGS (IF=1)
-    *(--pxTopOfStack) = 0x00000008;         // CS (用户态代码段选择子)
+    *(--pxTopOfStack) = KERNEL_CS;         // CS (用户态代码段选择子)
     *(--pxTopOfStack) = (StackType_t)pxCode; // EIP
 
     *(--pxTopOfStack) = 0xAAAAAAAA; // EAX

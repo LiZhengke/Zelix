@@ -2,6 +2,29 @@
 #define _INTERRUPT_H_
 
 #include "stdint.h"
+#pragma once
+#include <stdint.h>
+
+/*
+ * 与汇编保存顺序严格一致：
+ * pushad + 段寄存器 + CPU 自动压栈
+ */
+struct trap_frame {
+    /* 手动保存（汇编） */
+    uint32_t gs, fs, es, ds;
+
+    /* pushad 顺序（注意顺序） */
+    uint32_t edi, esi, ebp, esp_dummy, ebx, edx, ecx, eax;
+
+    /* CPU 自动压栈 */
+    uint32_t eip;
+    uint32_t cs;
+    uint32_t eflags;
+
+    /* 仅当从 ring3 进入时存在 */
+    uint32_t esp;
+    uint32_t ss;
+}__attribute__((packed));
 
 // Enhanced exception handler structure
 // Captures all CPU registers and exception information during an interrupt/exception

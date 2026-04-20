@@ -57,4 +57,16 @@
     POP_GPRS();            \
     POP_SEGS()
 
-#endif
+#define PUSH_TRAP_FRAME()  \
+   pushal;                 \
+   PUSH_SEGS();            \
+   movl $0x10, %eax;       \
+   movl %eax, %ds;          \
+   movl %eax, %es
+
+#define POP_TRAP_FRAME()  \
+    POP_SEGS();           \
+    popal
+
+
+#endif /* __ASM_MACROS_H__ */
