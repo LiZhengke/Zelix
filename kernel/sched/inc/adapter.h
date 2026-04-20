@@ -7,6 +7,7 @@
 
 void *sched_task_alloc(size_t size);
 void sched_task_free(void *ptr);
+void sched_task_delete(TaskHandle_t handle);
 BaseType_t sched_task_create(TaskFunction_t entry,
                              const char *name,
                              uint16_t stack_size,

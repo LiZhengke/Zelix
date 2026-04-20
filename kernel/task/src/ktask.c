@@ -3,8 +3,10 @@
 #include "adapter.h"
 #include "arch.h"
 #include "stdio.h"
+#include "task_context.h"
 
 #define STACK_SIZE 4096
+#define USER_STACK_SIZE 4096
 
 static struct task *task_list = NULL;
 
@@ -17,6 +19,13 @@ static struct task *alloc_task(void)
     return t;
 }
 
+static void *alloc_user_stack(struct task *t)
+{
+    void *stack = sched_task_alloc(USER_STACK_SIZE);
+    return (uint8_t *)stack + USER_STACK_SIZE;
+}
+
+
 void kernel_task_entry(void *arg)
 {
     struct task *t = (struct task *)arg;
@@ -25,7 +34,8 @@ void kernel_task_entry(void *arg)
     t->started = 1;
 
     if (t->entry != NULL) {
-        t->entry(t->arg);
+        arch_task_setup_frame_context(t);
+        return_to_user(t->frame_ctx);
     }
 
     for (;;) {
@@ -38,7 +48,7 @@ void kernel_task_entry(void *arg)
     }
 }
 
-struct task *task_create(const char *name, task_entry_t entry, void *arg)
+struct task *task_create(const char *name, task_entry_t entry, enum task_type type, void *arg)
 {
     struct task *t = alloc_task();
     BaseType_t status;
@@ -53,6 +63,9 @@ struct task *task_create(const char *name, task_entry_t entry, void *arg)
     t->entry = entry;
     t->arg = arg;
     t->state = TASK_RUNNING;
+    t->type = type;
+    // t->mm = mm_create(t);
+    t->user_stack_top = alloc_user_stack(t);
 
     status = sched_task_create(
         kernel_task_entry,
@@ -74,9 +87,9 @@ struct task *task_create(const char *name, task_entry_t entry, void *arg)
     return t;
 }
 
-struct task *task_system_start(const char *name, task_entry_t entry, void *arg)
+struct task *task_system_start(const char *name, task_entry_t entry, enum task_type type, void *arg)
 {
-    struct task *task = task_create(name, entry, arg);
+    struct task *task = task_create(name, entry, type, arg);
 
     if (task == NULL) {
         return NULL;
@@ -98,8 +111,27 @@ void task_destroy(struct task *t)
 
 void do_exit(int code)
 {
-    (void)code;
+    struct task *t = current_task();
 
-    for (;;) {
-    }
+    t->exit_code = code;
+    t->state = TASK_ZOMBIE;
+
+    /* 释放资源（简化版） */
+    if (t->mm)
+        destroy_mm(t->mm);
+
+    if (t->user_stack_top)
+        sched_task_free((void *)((uint32_t)t->user_stack_top - USER_STACK_SIZE));
+
+    /* 删除 FreeRTOS task */
+    sched_task_delete(NULL);
+
+    for (;;);
+}
+
+
+
+void user_exit_trampoline(void)
+{
+    do_exit(0);
 }

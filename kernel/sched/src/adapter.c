@@ -10,6 +10,11 @@ void sched_task_free(void *ptr)
     vPortFree(ptr);
 }
 
+void sched_task_delete(TaskHandle_t handle)
+{
+    vTaskDelete(handle);
+}
+
 BaseType_t sched_task_create(TaskFunction_t entry,
                              const char *name,
                              uint16_t stack_size,

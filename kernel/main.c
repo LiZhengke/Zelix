@@ -29,12 +29,13 @@ int kernel_main()
     i8259_init();
     timer_init(100);
 #endif /* configUSE_I8259 */
+    // mmu_init();
     /*init_mm();
     init_fs();
     init_syscall();
     init_sched_adapter();*/
     /* 2. 创建 init task 并启动任务系统 */
-    if (task_system_start("init", init_task_main, NULL) == NULL) {
+    if (task_system_start("init", init_task_main, TASK_TYPE_PROCESS, NULL) == NULL) {
         while (1) {
             /* fatal */
         }
