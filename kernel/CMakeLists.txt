@@ -17,9 +17,7 @@ foreach(subdir IN LISTS KERNEL_SUBDIRS)
         add_subdirectory(${subdir})
     endif()
 endforeach()
+
 add_executable(${PROJECT_NAME}
     main.c
-    # task/task.c
-    # mm/mm.c
-    # syscall/sys_exit.c
 )

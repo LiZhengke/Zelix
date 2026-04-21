@@ -57,6 +57,7 @@ target_link_options(${PROJECT_NAME} PRIVATE
 target_include_directories(${PROJECT_NAME} PRIVATE
 	${CMAKE_SOURCE_DIR}/kernel/include
 	${CMAKE_SOURCE_DIR}/kernel/task/inc
+	${CMAKE_SOURCE_DIR}/kernel/sched/inc
 	${CMAKE_SOURCE_DIR}/kernel/mm/inc
 	${CMAKE_SOURCE_DIR}/platform/x86/inc
 )
