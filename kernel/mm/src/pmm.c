@@ -7,15 +7,15 @@ uint8_t pmm_bitmap[BITMAP_SIZE];
 /**
  * Allocate contiguous physical pages.
  * @param num_pages Number of contiguous pages to allocate
- * @return Starting address of the allocated physical pages, or NULL if insufficient contiguous pages
+ * @return Starting address of the allocated physical pages, or 0 if insufficient contiguous pages
  */
-void* pmm_alloc_page(size_t num_pages) {
+phys_addr_t pmm_alloc_page(size_t num_pages) {
     uint32_t consecutive_free = 0;
     uint32_t start_page = 0;
 
     /* Handle edge cases */
     if (num_pages == 0 || num_pages > TOTAL_PAGES) {
-        return NULL;
+        return 0; /* Invalid request */
     }
 
     /* Search for num_pages consecutive free pages */
@@ -33,7 +33,7 @@ void* pmm_alloc_page(size_t num_pages) {
                 for (uint32_t j = 0; j < num_pages; j++) {
                     bitmap_set(start_page + j);
                 }
-                return (void*)(start_page * PAGE_SIZE);
+                return (phys_addr_t)(start_page * PAGE_SIZE);
             }
         } else {
             /* This page is occupied, reset the counter */
@@ -41,13 +41,13 @@ void* pmm_alloc_page(size_t num_pages) {
         }
     }
 
-    return NULL; /* Out of memory or insufficient contiguous pages */
+    return 0; /* Out of memory or insufficient contiguous pages */
 }
 
 /**
  * Free a single physical page.
  */
-void pmm_free_page(void* phys_addr) {
+void pmm_free_page(phys_addr_t phys_addr) {
     uint32_t page_idx = (uint32_t)phys_addr / PAGE_SIZE;
     bitmap_unset(page_idx);
 }
@@ -57,7 +57,7 @@ void pmm_free_page(void* phys_addr) {
  * @param phys_addr Starting address of the pages to free
  * @param num_pages Number of pages to free
  */
-void pmm_free_pages(void* phys_addr, size_t num_pages) {
+void pmm_free_pages(phys_addr_t phys_addr, size_t num_pages) {
     uint32_t start_page = (uint32_t)phys_addr / PAGE_SIZE;
 
     for (uint32_t i = 0; i < num_pages; i++) {

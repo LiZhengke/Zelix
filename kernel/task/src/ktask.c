@@ -5,8 +5,17 @@
 #include "stdio.h"
 #include "task_context.h"
 
-#define STACK_SIZE 4096
-#define USER_STACK_SIZE 4096
+#define USER_STACK_ADDRESS 0xBFFFF000
+
+int is_user_task(struct task *t)
+{
+    return t && t->mm != NULL;
+}
+
+int is_kernel_thread(struct task *t)
+{
+    return t && t->mm == NULL;
+}
 
 static struct task *task_list = NULL;
 
@@ -21,12 +30,19 @@ static struct task *alloc_task(void)
 
 static void *alloc_user_stack(struct task *t)
 {
-    void *stack = sched_task_alloc(USER_STACK_SIZE);
-    return (uint8_t *)stack + USER_STACK_SIZE;
+    void *stack = sched_task_alloc(t->user_stack_size / sizeof(StackType_t));
+    return (uint8_t *)stack + t->user_stack_size / sizeof(StackType_t);
+}
+
+static void kernel_thread_entry(void *arg)
+{
+    struct task *t = arg;
+    t->entry(t->arg);
+    do_exit(0);
 }
 
 
-void kernel_task_entry(void *arg)
+static void kernel_task_entry(void *arg)
 {
     struct task *t = (struct task *)arg;
 
@@ -48,7 +64,7 @@ void kernel_task_entry(void *arg)
     }
 }
 
-struct task *task_create(const char *name, task_entry_t entry, enum task_type type, void *arg)
+struct task *task_create(const char *name, task_entry_t entry, enum task_type type, size_t user_stack_size, void *arg)
 {
     struct task *t = alloc_task();
     BaseType_t status;
@@ -64,13 +80,20 @@ struct task *task_create(const char *name, task_entry_t entry, enum task_type ty
     t->arg = arg;
     t->state = TASK_RUNNING;
     t->type = type;
-    // t->mm = mm_create(t);
-    t->user_stack_top = alloc_user_stack(t);
+    if(type == TT_USER_PROCESS) {
+        t->user_stack_top = (uint32_t*)USER_STACK_ADDRESS;
+        t->user_stack_size = user_stack_size;
+        t->mm = mm_create(t);
+    } else {
+        t->user_stack_top = NULL;
+        t->mm = NULL;
+        t->frame_ctx = NULL;
+    }
 
     status = sched_task_create(
-        kernel_task_entry,
+        type == TT_USER_PROCESS ? kernel_task_entry : kernel_thread_entry,
         name,
-        STACK_SIZE,
+        KERNEL_STACK_SIZE / sizeof(StackType_t),
         t,
         1,
         &t->tcb
@@ -83,13 +106,13 @@ struct task *task_create(const char *name, task_entry_t entry, enum task_type ty
 
     t->next = task_list;
     task_list = t;
-
+    sched_bind_task(t->tcb, t);
     return t;
 }
 
-struct task *task_system_start(const char *name, task_entry_t entry, enum task_type type, void *arg)
+struct task *task_system_start(const char *name, task_entry_t entry, enum task_type type, size_t user_stack_size, void *arg)
 {
-    struct task *task = task_create(name, entry, type, arg);
+    struct task *task = task_create(name, entry, type, user_stack_size, arg);
 
     if (task == NULL) {
         return NULL;
@@ -121,12 +144,11 @@ void do_exit(int code)
         destroy_mm(t->mm);
 
     if (t->user_stack_top)
-        sched_task_free((void *)((uint32_t)t->user_stack_top - USER_STACK_SIZE));
+        sched_task_free((void *)((uint32_t)t->user_stack_top - t->user_stack_size));
 
+        // wakeup_parent(t);
     /* 删除 FreeRTOS task */
     sched_task_delete(NULL);
-
-    for (;;);
 }
 
 

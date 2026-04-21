@@ -1,6 +1,8 @@
 .global _start
 .extern __stack_top
 .extern kernel_main
+.extern init_paging
+.extern mmu_init
 
 /*
  * Higher-half kernel boot sequence:
@@ -124,6 +126,7 @@ _higher_half:
     # Optional: clear EBP to simplify stack backtracing.
     xor %ebp, %ebp
     /* ----- 8. Enter C code ----- */
+    call mmu_init
     call kernel_main
 
 halt:

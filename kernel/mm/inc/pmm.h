@@ -24,8 +24,8 @@ static inline int bitmap_test(uint32_t page_idx) {
     return pmm_bitmap[page_idx / 8] & (1 << (page_idx % 8));
 }
 
-void* pmm_alloc_page(size_t num_pages);
-void pmm_free_page(void* phys_addr);
-void pmm_free_pages(void* phys_addr, size_t num_pages);
+phys_addr_t pmm_alloc_page(size_t num_pages);
+void pmm_free_page(phys_addr_t phys_addr);
+void pmm_free_pages(phys_addr_t phys_addr, size_t num_pages);
 void pmm_init(uint32_t mem_size);
 #endif /* PMM_H */

@@ -23,7 +23,7 @@ static inline phys_addr_t v2p(void* virt) {
 }
 
 uint32_t user_to_phys(void *v_addr);
-void map_user_section(pde_t* pgd, void* user_stack_top, size_t user_stack_depth, const char * const pcName);
+void map_user_section(pde_t* pgd, void* user_stack_top, size_t user_stack_depth);
 uint32_t spawn_user_task(pde_t* pgd,void* user_entry,size_t user_task_section_size);
 
 

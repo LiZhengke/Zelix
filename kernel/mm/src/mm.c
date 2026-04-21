@@ -1,5 +1,6 @@
 #include "mm.h"
 #include "mmu.h"
+#include "pmm.h"
 #include "ktask.h"
 #include "adapter.h"
 #include "string.h"
@@ -8,12 +9,15 @@ mm_struct* mm_create(struct task * t) {
     /* 1. Allocate mm_struct from the kernel heap */
     mm_struct *mm = (mm_struct *)sched_task_alloc(sizeof(mm_struct));
 
-    if( t->type == TASK_TYPE_PROCESS ) {
+    if( t->type == TT_USER_PROCESS ) {
         memset(mm, 0, sizeof(mm_struct));
 
         /* 2. Create a new page directory with kernel mappings.
         *    This calls pmm_alloc_page() internally. */
         create_user_page_directory(&mm->pgd_phys, (uint32_t**)&mm->pgd); /* Returns physical address of new page directory */
+        map_user_section(mm->pgd,
+            ( uint32_t * ) mm->user_stack_top, t->user_stack_size);
+        spawn_user_task(mm->pgd, (void*)t->entry, 1 /*TODO*/);
     }else{
         /* For threads, share the same page directory as the current task. */
         mm->pgd_phys = t->mm->pgd_phys;

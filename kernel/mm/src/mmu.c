@@ -205,7 +205,7 @@ uint32_t user_to_phys(void *v_addr) {
    return (uint32_t)v_addr;
 }
 
-void map_user_section(pde_t* pgd, void* user_stack_top, size_t user_stack_depth, const char * const pcName) {
+void map_user_section(pde_t* pgd, void* user_stack_top, size_t user_stack_depth) {
      /* Compute stack size in bytes. */
     uint32_t stack_size = user_stack_depth * sizeof( StackType_t );
     /* Allocate physical pages for the user stack. */
@@ -294,12 +294,12 @@ void free_user_space(uint32_t *pgd) {
             // 🔥 只释放用户页
             if (pte & PG_USER) {
                 void *phys = (void*)(pte & ~0xFFF);
-                pmm_free_pages(phys, 1);   // 释放物理页
+                pmm_free_pages((phys_addr_t)phys, 1);   // 释放物理页
             }
             pt[j] = 0;
         }
         // 🔥 释放页表本身
-        pmm_free_pages(pt, 1);
+        pmm_free_pages((phys_addr_t)pt, 1);
         pgdir[i] = 0;
     }
 }
