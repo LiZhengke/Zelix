@@ -74,3 +74,6 @@ rules.ninja
 # Dependency fetch / local tooling
 freertos*/
 .codex
+
+# Local runtime output
+log.txt
