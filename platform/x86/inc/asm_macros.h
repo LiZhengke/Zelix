@@ -8,6 +8,7 @@
 #define KERNEL_CS 0x08
 #define KERNEL_DS 0x10
 
+#define TASK_MM_OFFSET 0x04
 /* -------------------------
  * Save general purpose registers
  * For 486 (no SSE)

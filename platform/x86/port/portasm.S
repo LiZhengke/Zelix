@@ -27,7 +27,7 @@ vPortStartFirstTask:
     movl pxCurrentTCB, %eax
     movl (%eax), %esp        # load first task stack
 
-    popal
+    POP_TRAP_FRAME()
     iret
 .endfunc
 
@@ -37,24 +37,44 @@ vPortYieldCall:
     cli
     PUSH_TRAP_FRAME()
 
+    movl pxCurrentTCB, %eax
+    movl %esp, (%eax)
+
     call current_task
     movl %eax, %ebx
+    test %ebx, %ebx
+    je .L_skip_save_ctx
+
+    movl TASK_MM_OFFSET(%ebx), %eax
+    test %eax, %eax
+    je .L_skip_save_ctx
 
     pushl %esp
     pushl %eax
     call save_user_ctx
     addl $8, %esp
 
+.L_skip_save_ctx:
     call vTaskSwitchContext
+
+    movl pxCurrentTCB, %eax
+    movl (%eax), %esp
 
     call current_task
     movl %eax, %ebx
+    test %ebx, %ebx
+    je .L_skip_load_ctx
+
+    movl TASK_MM_OFFSET(%ebx), %eax
+    test %eax, %eax
+    je .L_skip_load_ctx
 
     push %esp
     push %eax
     call load_user_ctx
     add $8, %esp
 
+.L_skip_load_ctx:
     POP_TRAP_FRAME()
     iret
 .endfunc
@@ -64,14 +84,24 @@ vPortYieldCall:
 vPortTimerHandler:
     PUSH_TRAP_FRAME()
 
+    movl pxCurrentTCB, %eax
+    movl %esp, (%eax)
+
     call current_task
     movl %eax, %ebx
+    test %ebx, %ebx
+    je .L_timer_skip_save_ctx
+
+    movl TASK_MM_OFFSET(%ebx), %eax
+    test %eax, %eax
+    je .L_timer_skip_save_ctx
 
     pushl %esp
     pushl %eax
     call save_user_ctx
     addl $8, %esp
 
+.L_timer_skip_save_ctx:
     movl    ulTopOfSystemStack, %esp
     movl    %esp, %ebp
 
@@ -93,14 +123,24 @@ _skip_context_switch:
     /* Decrement the variable used to determine if a switch to a system stack is necessary. */
     subl    $1, ulInterruptNesting
 
+    movl pxCurrentTCB, %eax
+    movl (%eax), %esp
+
     call current_task
     movl %eax, %ebx
+    test %ebx, %ebx
+    je .L_timer_skip_load_ctx
+
+    movl TASK_MM_OFFSET(%ebx), %eax
+    test %eax, %eax
+    je .L_timer_skip_load_ctx
 
     push %esp
     push %eax
     call load_user_ctx
     add $8, %esp
 
+.L_timer_skip_load_ctx:
     /* Acknowledge IRQ0 on master PIC so the next tick can be delivered. */
     movb    $0x20, %al
     outb    %al, $0x20

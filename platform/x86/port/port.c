@@ -116,6 +116,10 @@ StackType_t *pxPortInitialiseStack(
     *(--pxTopOfStack) = 0xEEEEEEEE; // EBP
     *(--pxTopOfStack) = 0xFFFFFFFF; // ESI
     *(--pxTopOfStack) = 0x11111111; // EDI
+    *(--pxTopOfStack) = KERNEL_DS;  // DS
+    *(--pxTopOfStack) = KERNEL_DS;  // ES
+    *(--pxTopOfStack) = KERNEL_DS;  // FS
+    *(--pxTopOfStack) = KERNEL_DS;  // GS
 
     return pxTopOfStack;
 }
