@@ -14,6 +14,7 @@ target_include_directories(mm PRIVATE
     ${CMAKE_SOURCE_DIR}/kernel/task/inc
     ${CMAKE_SOURCE_DIR}/platform/x86/inc
     ${CMAKE_SOURCE_DIR}/kernel/sched/inc
+    ${CMAKE_SOURCE_DIR}/kernel/loader/inc
 )
 
 zelix_apply_common_compile_options(mm)

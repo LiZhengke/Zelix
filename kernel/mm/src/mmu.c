@@ -162,13 +162,15 @@ void create_user_page_directory(uint32_t* pgd_phys, uint32_t** pgd_virt) {
     for (int i = 0; i < KERNEL_PDE_START; i++) {
         pd[i] = 0;
     }
-    pde_t *boot_pgd_virt = (pde_t *)p2v((phys_addr_t)get_page_directory()); /* Get virtual address of the boot page directory. */
+
+    pde_t* pgd = get_page_directory(); /* Ensure the current page directory is loaded and accessible. */
     /* Copy kernel-space entries (768 - 1023) from the boot page directory */
     for (int i = KERNEL_PDE_START; i < 1024; i++) {
-        pd[i] = boot_pgd_virt[i];
+        pd[i] = pgd[i];
     }
 
-    pd[0] = boot_pgd_virt[0]; /* Identity map the first 4MB for user-space code */
+    pd[0] = pgd[0]; /* Identity map the first 4MB for user-space code */
+    pd[1] = pgd[1]; /* Identity map the next 4MB for user-space code */
 
     if (pgd_phys) *pgd_phys = new_pd_phys;
     if (pgd_virt) *pgd_virt = pd;
@@ -205,7 +207,7 @@ uint32_t user_to_phys(void *v_addr) {
    return (uint32_t)v_addr;
 }
 
-void map_user_section(pde_t* pgd, void* user_stack_top, size_t user_stack_depth) {
+void map_user_stack(pde_t* pgd, void* user_stack_top, size_t user_stack_depth) {
      /* Compute stack size in bytes. */
     uint32_t stack_size = user_stack_depth * sizeof( StackType_t );
     /* Allocate physical pages for the user stack. */
@@ -235,12 +237,11 @@ void map_user_section(pde_t* pgd, void* user_stack_top, size_t user_stack_depth)
     }
 }
 
-uint32_t spawn_user_task(pde_t* pgd,void* user_entry,size_t user_task_section_size) {
+uint32_t map_user_code(pde_t* pgd,void* user_entry,size_t user_task_section_size) {
     // Get the cached user program image location inside the kernel.
-    uint32_t prog_phys = (uint32_t)pmm_alloc_page(user_task_section_size/4096);
-    uint32_t user_entry_addr = ( uint32_t ) user_entry;
-
     uint32_t num_pages = (user_task_section_size + 4095) / 4096;
+    uint32_t prog_phys = (uint32_t)pmm_alloc_page(num_pages);
+    uint32_t user_entry_addr = ( uint32_t ) user_entry;
 
     size_t i;
 
@@ -260,7 +261,7 @@ uint32_t spawn_user_task(pde_t* pgd,void* user_entry,size_t user_task_section_si
 
 void mmu_init(void) {
     pmm_init(MEMORY_MAX_SIZE); /* Initialize the physical memory manager (assume 128MB total RAM). */
-    kmalloc_init(p2v((phys_addr_t)get_page_directory()), 16); /* Initialize kernel heap, preallocating 16 pages (64KB). */
+    kmalloc_init(p2v((phys_addr_t)get_page_directory()), 256); /* Initialize kernel heap, preallocating 256 pages (1MB). */
 
     #if ( configRUN_ADDITIONAL_TESTS == 1 )
         prvRunMmuUnitTests();
