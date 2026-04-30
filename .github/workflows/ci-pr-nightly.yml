@@ -1,0 +1,147 @@
+name: CI Fast + Nightly
+
+on:
+  push:
+    branches:
+      - main
+      - process_enable
+  pull_request:
+  schedule:
+    - cron: "20 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  BUILD_DIR: build-i486
+  TOOLCHAIN_FILE: cmake/toolchain-i486-flat.cmake
+
+jobs:
+  fast-ci:
+    name: Fast PR checks
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Lint workflow files
+        uses: reviewdog/action-actionlint@v1
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            cmake \
+            ninja-build \
+            gcc \
+            gcc-multilib \
+            libc6-dev-i386 \
+            binutils \
+            make
+
+      - name: Configure CMake (i486)
+        run: |
+          cmake -S . -B "$BUILD_DIR" \
+            -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE="$TOOLCHAIN_FILE"
+
+      - name: Build
+        run: cmake --build "$BUILD_DIR" --clean-first
+
+      - name: Validate artifacts exist
+        run: |
+          test -s "$BUILD_DIR/kernel/Zelix"
+          test -s "$BUILD_DIR/kernel/Zelix.map"
+
+      - name: Symbol sanity check
+        run: |
+          nm -n "$BUILD_DIR/kernel/Zelix" | grep -q " T kernel_main$"
+          nm -n "$BUILD_DIR/kernel/Zelix" | grep -q " T exception_handler$"
+          nm -n "$BUILD_DIR/kernel/Zelix" | grep -q " T vPortStartFirstTask$"
+          nm -n "$BUILD_DIR/kernel/Zelix" | grep -q " T exc13$"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: zelix-i486-fast
+          path: |
+            build-i486/kernel/Zelix
+            build-i486/kernel/Zelix.map
+          if-no-files-found: error
+
+  nightly-deep:
+    name: Nightly deep checks
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install deep-check dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            cmake \
+            ninja-build \
+            gcc \
+            gcc-multilib \
+            libc6-dev-i386 \
+            binutils \
+            make \
+            cppcheck \
+            qemu-system-x86
+
+      - name: Configure CMake (i486)
+        run: |
+          cmake -S . -B "$BUILD_DIR" \
+            -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE="$TOOLCHAIN_FILE"
+
+      - name: Build
+        run: cmake --build "$BUILD_DIR" --clean-first
+
+      - name: Static analysis (cppcheck)
+        run: |
+          cppcheck --enable=warning,style,performance,portability \
+            --inline-suppr \
+            --error-exitcode=1 \
+            --suppress=missingIncludeSystem \
+            kernel platform
+
+      - name: QEMU smoke boot (best effort)
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 12 qemu-system-i386 \
+            -cpu 486 \
+            -m 128M \
+            -kernel "$BUILD_DIR/kernel/Zelix" \
+            -nographic > qemu.log 2>&1 || status=$?
+
+          if [[ "${status:-0}" != "0" && "${status:-0}" != "124" ]]; then
+            echo "QEMU exited with unexpected status ${status}"
+            cat qemu.log
+            exit 1
+          fi
+
+          if grep -q "Welcome to Zelix OS!" qemu.log; then
+            echo "QEMU smoke test passed"
+          else
+            echo "QEMU output did not include expected banner"
+            cat qemu.log
+            exit 1
+          fi
+
+      - name: Upload nightly logs and artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: zelix-i486-nightly
+          path: |
+            build-i486/kernel/Zelix
+            build-i486/kernel/Zelix.map
+            qemu.log
+          if-no-files-found: warn
