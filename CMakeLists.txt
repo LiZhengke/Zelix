@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 include(cmake/zelix-target-defaults.cmake)
 include(cmake/freertos.cmake)
+include(cmake/fatfs.cmake)
 
 project(Zelix
 	VERSION 0.1.0
@@ -40,6 +41,9 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 	task
 	sched
 	kernel_libc
+	fatfs
+	loader
+	syscall
 	-Wl,--end-group
 )
 
@@ -59,5 +63,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 	${CMAKE_SOURCE_DIR}/kernel/task/inc
 	${CMAKE_SOURCE_DIR}/kernel/sched/inc
 	${CMAKE_SOURCE_DIR}/kernel/mm/inc
+	${CMAKE_SOURCE_DIR}/kernel/loader/inc
 	${CMAKE_SOURCE_DIR}/platform/x86/inc
+	${CMAKE_SOURCE_DIR}/kernel/syscall/inc
 )

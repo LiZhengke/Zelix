@@ -10,6 +10,7 @@ set(KERNEL_SUBDIRS
     fs
     sched
     task
+    loader
 )
 
 foreach(subdir IN LISTS KERNEL_SUBDIRS)
