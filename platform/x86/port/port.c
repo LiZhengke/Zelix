@@ -19,11 +19,21 @@
  * created.  This is just useful for debugging and can be set to any value. */
 #define portSTACK_WORD                  0xA5A5A5A5UL
 
-#define portHOOK_PRINT_EVERY 100U
+#define portHOOK_PRINT_EVERY 50U
 
 #if ( configENABLE_PRINT_ESP == 1 )
     extern unsigned long get_esp( void );
 #endif
+
+/* Allocate the memory for the heap. */
+#if ( configAPPLICATION_ALLOCATED_HEAP == 1 )
+extern uint8_t __heap_start;
+extern uint8_t __heap_end;
+/* The application writer has already defined the array used for the RTOS
+ * heap - probably so it can be placed in a special segment or address. */
+__attribute__((section(".heap")))
+uint8_t ucHeap[configTOTAL_HEAP_SIZE];
+#endif /* configAPPLICATION_ALLOCATED_HEAP */
 
 /* The stack used by interrupt handlers. */
 static uint32_t ulSystemStack[ configISR_STACK_SIZE ] __attribute__( ( used ) ) = { 0 };
@@ -57,6 +67,7 @@ BaseType_t xPortStartScheduler(void)
     /* Some versions of GCC require the -mno-ms-bitfields command line option
      * for packing to work. */
     configASSERT( sizeof( struct IDTEntry ) == portEXPECTED_IDT_ENTRY_SIZE );
+    configASSERT((&__heap_end - &__heap_start) >= configTOTAL_HEAP_SIZE);
 
     (void) xWord;
     ulTopOfSystemStack =
@@ -73,7 +84,11 @@ BaseType_t xPortStartScheduler(void)
       /* Make sure the stack used by interrupts is aligned. */
     ulTopOfSystemStack &= ~portBYTE_ALIGNMENT_MASK;
     ulCriticalNesting = 0;
-
+#if (configUSE_I8259 == 1)
+    // i8259_init();
+    // timer_init(100);
+#endif /* configUSE_I8259 */
+    //tss_set_esp0(ulTopOfSystemStack);
     vPortStartFirstTask();
     return 0;
 }
@@ -99,6 +114,7 @@ StackType_t *pxPortInitialiseStack(
     *(--pxTopOfStack) = (StackType_t)0;
     *(--pxTopOfStack) = (StackType_t)0;
 
+     /* The x86 architecture requires the stack to be aligned to 16 bytes. */
     *(--pxTopOfStack) = (StackType_t)pvParameters;         // 用户态参数
     *(--pxTopOfStack) = (StackType_t)0;         // 用户态返回地址（不存在，填0）
 

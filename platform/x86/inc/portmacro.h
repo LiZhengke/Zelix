@@ -18,11 +18,12 @@ typedef uint32_t TickType_t;
 #define portSTACK_GROWTH         (-1)
 #define portBYTE_ALIGNMENT    32
 #define portTICK_PERIOD_MS       (1)
-
+#define pvPortMalloc(size)    kmalloc(size)
+#define vPortFree(ptr)       kfree(ptr)
 /* =========================================================
  * 2. Critical section（x86 CLI/STI）
  * ========================================================= */
-
+extern int task_started; /* Defined in main.c, indicates if the first task has started. */
 static inline void portDISABLE_INTERRUPTS(void)
 {
     __asm__ volatile ("cli");
@@ -30,7 +31,9 @@ static inline void portDISABLE_INTERRUPTS(void)
 
 static inline void portENABLE_INTERRUPTS(void)
 {
-    __asm__ volatile ("sti");
+    if(task_started) {
+        __asm__ volatile ("sti");
+    }
 }
 
 /* 简化版：单核可用 */

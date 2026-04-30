@@ -10,6 +10,9 @@
 .extern current_task
 .extern ulTopOfSystemStack
 .extern ulInterruptNesting
+.extern tss_set_esp0
+.extern uSysCallDispatch
+.extern task_started
 
 .global vPortStartFirstTask
 .global vPortYieldCall
@@ -22,12 +25,37 @@
 .text
 
 .align 4
+.func vUpdateTSS
+vUpdateTSS:
+    movl pxCurrentTCB, %eax
+    test %eax, %eax
+    jz .L_update_tss_exit
+
+    movl (%eax), %ebp
+    subl $TRAP_FRAME_SIZE, %ebp        /* adjust to point to top of stack for current task */
+    push %ebp
+    call tss_set_esp0
+    addl $4, %esp   /* skip the parameter we just pushed for tss_set_esp0 */
+.L_update_tss_exit:
+    ret
+.endfunc
+
+.align 4
 .func vPortStartFirstTask
 vPortStartFirstTask:
+    cli
     movl pxCurrentTCB, %eax
     movl (%eax), %esp        # load first task stack
 
     POP_TRAP_FRAME()
+
+    movl %esp, %ebp        # set base pointer to top of stack for first task
+    addl $12, %ebp        # adjust stack pointer to account for reserved task struct space
+    pushl %ebp
+    call tss_set_esp0  # 设置 TSS 的 esp0 为第一个任务的栈顶
+    addl $4, %esp       # skip the parameter we just pushed for tss_set_esp0
+
+    movl $1, task_started
     iret
 .endfunc
 
@@ -37,7 +65,12 @@ vPortYieldCall:
     cli
     PUSH_TRAP_FRAME()
 
+    movl task_started, %eax
+    test %eax, %eax
+    jz .L_yield_early_exit
     movl pxCurrentTCB, %eax
+    test %eax, %eax
+    jz .L_yield_early_exit
     movl %esp, (%eax)
 
     call current_task
@@ -69,12 +102,22 @@ vPortYieldCall:
     test %eax, %eax
     je .L_skip_load_ctx
 
-    push %esp
-    push %eax
+    movl %esp, %ebp
+    addl $TRAP_FRAME_SIZE, %ebp        /* adjust to point to top of stack for current task */
+
+    movl (%eax), %eax
+    movl %eax, %cr3
+
+    pushl %esp
+    pushl %eax
     call load_user_ctx
-    add $8, %esp
+    addl $8, %esp
 
 .L_skip_load_ctx:
+    pushl %ebp
+    call tss_set_esp0
+    addl $4, %esp   /* skip the parameter we just pushed for tss_set_esp0 */
+.L_yield_early_exit:
     POP_TRAP_FRAME()
     iret
 .endfunc
@@ -84,7 +127,13 @@ vPortYieldCall:
 vPortTimerHandler:
     PUSH_TRAP_FRAME()
 
+    movl task_started, %eax
+    test %eax, %eax
+    jz .L_timer_early_exit
+
     movl pxCurrentTCB, %eax
+    test %eax, %eax
+    jz .L_timer_early_exit
     movl %esp, (%eax)
 
     call current_task
@@ -135,16 +184,27 @@ _skip_context_switch:
     test %eax, %eax
     je .L_timer_skip_load_ctx
 
-    push %esp
-    push %eax
+    movl %esp, %ebp
+    addl $TRAP_FRAME_SIZE, %ebp        /* adjust to point to top of stack for current task */
+
+    movl (%eax), %eax
+    movl %eax, %cr3
+
+    pushl %esp
+    pushl %eax
     call load_user_ctx
-    add $8, %esp
+    addl $8, %esp
 
 .L_timer_skip_load_ctx:
+    pushl %ebp
+    call tss_set_esp0
+    addl $4, %esp   /* skip the parameter we just pushed for tss_set_esp0 */
+
     /* Acknowledge IRQ0 on master PIC so the next tick can be delivered. */
     movb    $0x20, %al
     outb    %al, $0x20
 
+.L_timer_early_exit:
     POP_TRAP_FRAME()
 
     sti
@@ -154,7 +214,7 @@ _skip_context_switch:
 .align 4
 .func vPortSysCall
 vPortSysCall:
-    cli
+	cli
     pushal
     PUSH_SEGS()
 
@@ -187,7 +247,7 @@ vPortSysCall:
         *   +-----------------+ (ESP points here)
         */
 
-    mov     $0x10, %ax              /* KERNEL_DS 0x10 */
+	mov     $0x10, %ax              /* KERNEL_DS 0x10 */
     mov     %ax, %ds
     mov     %ax, %es
     mov     %ax, %fs
@@ -198,7 +258,7 @@ vPortSysCall:
     /*!!!! TODO: we could optimize this by having the C handler read the syscall number
      directly from the saved EAX slot on the stack instead of pushing it as a parameter. */
 
-    /*call    uSysCallDispatch */    /* Call C function to handle syscall */
+    call    uSysCallDispatch       /* Call C function to handle syscall */
     /* addl $4, %esp */
 
     /* Store the syscall return value (in EAX) into the saved-EAX slot

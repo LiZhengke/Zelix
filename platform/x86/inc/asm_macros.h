@@ -9,6 +9,8 @@
 #define KERNEL_DS 0x10
 
 #define TASK_MM_OFFSET 0x04
+#define TASK_ACTIVE_MM_OFFSET 0x08
+#define TRAP_FRAME_SIZE 68 /* sizeof(struct trap_frame) */
 /* -------------------------
  * Save general purpose registers
  * For 486 (no SSE)

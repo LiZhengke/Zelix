@@ -97,7 +97,7 @@ SECTIONS
     .heap : AT(ADDR(.heap) - KERNEL_VMA)
     {
         *(.heap)
-        . += 64K;  /* Reserve 64KB heap space. */
+        . += 256K;  /* Reserve 256KB heap space. */
     } :data
     __heap_end = .;
 
