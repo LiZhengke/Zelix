@@ -78,20 +78,21 @@ cmake --build build-i486
 Example run command:
 
 ```bash
-/opt/qemu-7.2/bin/qemu-system-i386 \
-  -cpu 486 \
-  -m 128M \
+qemu72 -cpu 486 -m 128M \
   -bios /home/max/work/freertos/FreeRTOS-Kernel/i486-flat/bootloader/build/bios.rom \
   -kernel build-i486/kernel/Zelix \
+  -drive file=disk.img,format=raw,if=ide \
   -nographic
 ```
 
 Timed run for log capture:
 
 ```bash
-timeout 12 /opt/qemu-7.2/bin/qemu-system-i386 -cpu 486 -m 128M \
+timeout 12 qemu72 -cpu 486 -m 128M \
   -bios /home/max/work/freertos/FreeRTOS-Kernel/i486-flat/bootloader/build/bios.rom \
-  -kernel build-i486/kernel/Zelix -nographic 2>&1
+  -kernel build-i486/kernel/Zelix \
+  -drive file=disk.img,format=raw,if=ide \
+  -nographic 2>&1
 ```
 
 ## Output Artifacts

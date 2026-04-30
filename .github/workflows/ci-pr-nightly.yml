@@ -116,11 +116,27 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          timeout 12 qemu-system-i386 \
-            -cpu 486 \
-            -m 128M \
-            -kernel "$BUILD_DIR/kernel/Zelix" \
-            -nographic > qemu.log 2>&1 || status=$?
+          qemu_bin="qemu72"
+          if ! command -v "$qemu_bin" >/dev/null 2>&1; then
+            qemu_bin="qemu-system-i386"
+          fi
+
+          qemu_args=(
+            -cpu 486
+            -m 128M
+            -kernel "$BUILD_DIR/kernel/Zelix"
+            -drive file=disk.img,format=raw,if=ide
+            -nographic
+          )
+
+          bios_path="/home/max/work/freertos/FreeRTOS-Kernel/i486-flat/bootloader/build/bios.rom"
+          if [[ -f "$bios_path" ]]; then
+            qemu_args=( -bios "$bios_path" "${qemu_args[@]}" )
+          else
+            echo "BIOS file not found at $bios_path, running without -bios in CI"
+          fi
+
+          timeout 12 "$qemu_bin" "${qemu_args[@]}" > qemu.log 2>&1 || status=$?
 
           if [[ "${status:-0}" != "0" && "${status:-0}" != "124" ]]; then
             echo "QEMU exited with unexpected status ${status}"
