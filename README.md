@@ -1,8 +1,17 @@
 # Zelix
 
+[![CI (i486 CMake)](https://github.com/LiZhengke/Zelix/actions/workflows/cmake-single-platform.yml/badge.svg?branch=process_enable)](https://github.com/LiZhengke/Zelix/actions/workflows/cmake-single-platform.yml)
+[![CI Fast + Nightly](https://github.com/LiZhengke/Zelix/actions/workflows/ci-pr-nightly.yml/badge.svg?branch=process_enable)](https://github.com/LiZhengke/Zelix/actions/workflows/ci-pr-nightly.yml)
+
 Zelix is an experimental i486 OS kernel project using FreeRTOS as the core
 scheduler, with an x86 platform port, kernel-side libc, and modular kernel
 subsystems.
+
+## CI Pipelines
+
+- `CI (i486 CMake)`: baseline CI for i486 configure/build, optional tests, and artifact upload.
+- `CI Fast + Nightly`: split workflow with fast PR checks (lint/build/symbol checks) and nightly deep checks (cppcheck + QEMU smoke boot).
+- Artifacts: both workflows publish `build-i486/kernel/Zelix` and `build-i486/kernel/Zelix.map` when available.
 
 ## Repository Layout
 
