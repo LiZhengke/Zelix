@@ -75,6 +75,12 @@ cmake --build build-i486
 
 ## Quick Run (QEMU)
 
+Optional alias setup:
+
+```bash
+alias qemu72='/opt/qemu-7.2/bin/qemu-system-i386'
+```
+
 Example run command:
 
 ```bash
