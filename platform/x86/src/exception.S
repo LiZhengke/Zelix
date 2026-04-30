@@ -61,14 +61,26 @@ ISR_NOERR 29   /* Reserved */
 ISR_NOERR 30   /* #SX  Security Exception (newer CPU) */
 ISR_NOERR 31   /* Reserved */
 ISR_NOERR 32   /* First user-defined interrupt */
+ISR_NOERR 33
+ISR_NOERR 34
+ISR_NOERR 35
+ISR_NOERR 36
+ISR_NOERR 37
+ISR_NOERR 38
+ISR_NOERR 39
+ISR_NOERR 40
+ISR_NOERR 41
+ISR_NOERR 42
+ISR_NOERR 43
+ISR_NOERR 44
+ISR_NOERR 45
+ISR_NOERR 46
+ISR_NOERR 47
 
 
 # --- Unified handler logic for all exceptions ---
 common_stub:
-    pushal             # Save general purpose registers: EAX, ECX, EDX, EBX, ESP, EBP, ESI, EDI
-
-    # Save segment registers (required to preserve segment state across handler)
-    PUSH_SEGS()
+    PUSH_TRAP_FRAME()  /* Save all registers and segment selectors on stack */
 
  /*
      * Stack layout at this point (ESP → increases downward as we push):
@@ -77,14 +89,14 @@ common_stub:
      *  [esp+0x04]  fs              (segment register)
      *  [esp+0x08]  es              (segment register)
      *  [esp+0x0C]  ds              (segment register)
-     *  [esp+0x10]  eax             (from pushal)
-     *  [esp+0x14]  ecx             (from pushal)
-     *  [esp+0x18]  edx             (from pushal)
-     *  [esp+0x1C]  ebx             (from pushal)
-     *  [esp+0x20]  esp_dummy       (esp value before pushal, from pushal)
-     *  [esp+0x24]  ebp             (from pushal)
-     *  [esp+0x28]  esi             (from pushal)
-     *  [esp+0x2C]  edi             (from pushal)
+     *  [esp+0x10]  edi             (from pushal)
+     *  [esp+0x14]  esi             (from pushal)
+     *  [esp+0x18]  ebp             (from pushal)
+     *  [esp+0x1C]  esp_dummy       (esp value before pushal, from pushal)
+     *  [esp+0x20]  ebx             (from pushal)
+     *  [esp+0x24]  edx             (from pushal)
+     *  [esp+0x28]  ecx             (from pushal)
+     *  [esp+0x2C]  eax             (from pushal)
      *  [esp+0x30]  vector          (pushed by ISR_* macros)
      *  [esp+0x34]  error_code      (pushed by ISR_* macros or CPU)
      *  [esp+0x38]  eip             (pushed by CPU on interrupt)
@@ -100,21 +112,7 @@ common_stub:
     call exception_handler  # Call C function to handle exception
     addl $4, %esp      # Clean up parameter from stack (remove regs_t * argument)
 
-    # Restore segment registers (pop in reverse order of push: GS, FS, ES, DS)
-    POP_SEGS()
-
-    # Restore general purpose registers (popal restores in reverse order of pushal)
-    popal
-
-    # Clean up vector number and error code from stack before returning to interrupted code
-    addl $8, %esp      # Remove vector (4 bytes) and error_code (4 bytes)
-    # Return from interrupt: pops EIP, CS, EFLAGS (and optionally ESP, SS if from user mode)
-    mov %ax, %es       # Restore ES
-    popl %eax          # Pop DS
-    mov %ax, %ds       # Restore DS
-
-    # Restore general purpose registers (popal restores in reverse order of pushal)
-    popal
+    POP_TRAP_FRAME() /* Restore all registers and segment selectors from stack */
 
     # Clean up vector number and error code from stack before returning to interrupted code
     addl $8, %esp      # Remove vector (4 bytes) and error_code (4 bytes)

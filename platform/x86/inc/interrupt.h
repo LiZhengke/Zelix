@@ -47,5 +47,12 @@ struct exc_regs {
     // User-mode stack information
     uint32_t user_esp;    // User stack pointer (ring 3)
     uint32_t user_ss;     // User stack segment (ring 3)
-};
+}__attribute__((packed));
+
+typedef void (*IRQ_Handler_t)( struct exc_regs *r );
+
+/* Register/unregister IRQ handlers (0-15 for legacy PIC IRQs) */
+void register_irq_handler( uint32_t ulIRQ, IRQ_Handler_t pxHandler );
+void unregister_irq_handler( uint32_t ulIRQ );
+
 #endif /* _INTERRUPT_H_ */

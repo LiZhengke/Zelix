@@ -100,7 +100,6 @@ void i8259_init(void) {
 	 * the master PIC
 	 */
 	unmask_irq(2);
-	unmask_irq(0);
 
 	/* Interrupt 9 should be level triggered (SCI). The OS might do this */
 	configure_irq_trigger(9, true);

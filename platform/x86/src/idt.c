@@ -42,19 +42,49 @@ static void prvSetInterruptGate( uint8_t ucNumber,
 
 void init_idt( void )
 {
-    uint32_t ulNum;
     IDTPointer_t xIDT;
 
-    /* Initialise each entry in the interrupt descriptor table to the same handler. */
-    (void) ulNum;
-
     extern void exc0(); // Division by zero exception
-    extern void exc13(); // General Protection Fault (GPF)
     extern void exc8();
+    extern void exc13(); // General Protection Fault (GPF)
+    extern void exc32();
+    extern void exc33();
+    extern void exc34();
+    extern void exc35();
+    extern void exc36();
+    extern void exc37();
+    extern void exc38();
+    extern void exc39();
+    extern void exc40();
+    extern void exc41();
+    extern void exc42();
+    extern void exc43();
+    extern void exc44();
+    extern void exc45();
+    extern void exc46();
+    extern void exc47();
+    ISR_Handler_t const pxIRQStubs[] = {
+        ( ISR_Handler_t ) exc32, ( ISR_Handler_t ) exc33,
+        ( ISR_Handler_t ) exc34, ( ISR_Handler_t ) exc35,
+        ( ISR_Handler_t ) exc36, ( ISR_Handler_t ) exc37,
+        ( ISR_Handler_t ) exc38, ( ISR_Handler_t ) exc39,
+        ( ISR_Handler_t ) exc40, ( ISR_Handler_t ) exc41,
+        ( ISR_Handler_t ) exc42, ( ISR_Handler_t ) exc43,
+        ( ISR_Handler_t ) exc44, ( ISR_Handler_t ) exc45,
+        ( ISR_Handler_t ) exc46, ( ISR_Handler_t ) exc47,
+    };
+    uint32_t ulNum;
 
     prvSetInterruptGate(0, (ISR_Handler_t)exc0, portIDT_FLAGS);
     prvSetInterruptGate(8, (ISR_Handler_t)exc8, portIDT_FLAGS);
     prvSetInterruptGate(13, (ISR_Handler_t)exc13, portIDT_FLAGS);
+
+    /* Install default stubs for legacy PIC IRQs (vectors 32..47). */
+    for( ulNum = 0; ulNum < ( sizeof( pxIRQStubs ) / sizeof( pxIRQStubs[ 0 ] ) ); ulNum++ )
+    {
+        prvSetInterruptGate( ( uint8_t ) ( 32U + ulNum ), pxIRQStubs[ ulNum ], portIDT_FLAGS );
+    }
+
     /* Install timer handler.  */
     prvSetInterruptGate( ( uint8_t ) portAPIC_TIMER_INT_VECTOR, vPortTimerHandler, portIDT_FLAGS );
 
