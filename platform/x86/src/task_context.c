@@ -8,11 +8,16 @@
 
 void arch_task_setup_frame_context(struct task *t)
 {
-    struct trap_frame *tf =
-        (struct trap_frame *)(t->user_stack_top - sizeof(*tf));
+    struct trap_frame *tf;
+    uint32_t* sp = (uint32_t*)t->tcb;
+
+    sp -= sizeof(struct trap_frame) / sizeof(uint32_t); /* Reserve space for trap frame */
+    tf = (struct trap_frame *)sp;
+
+    t->tcb = (tcb_t)sp;  /* Set the task's top of stack to the new value after reserving space for the trap frame. */
 
     memset(tf, 0, sizeof(*tf));
-    tf->eip = (uint32_t)t->entry;
+    tf->eip = (uint32_t)t->entry_virt; /* User entry point virtual address. */
 
     tf->ds = tf->es = tf->fs = tf->gs = tf->ss = USER_DS;
 
@@ -27,7 +32,7 @@ void arch_task_setup_frame_context(struct task *t)
 
 void save_user_ctx(struct task *t, struct trap_frame *tf)
 {
-    t->frame_ctx->eip = tf->eip;
+    /*t->frame_ctx->eip = tf->eip;
     t->frame_ctx->esp = (tf->cs & 0x3) ? tf->esp : t->frame_ctx->esp;
     t->frame_ctx->eflags = tf->eflags;
 
@@ -37,12 +42,12 @@ void save_user_ctx(struct task *t, struct trap_frame *tf)
     t->frame_ctx->edx = tf->edx;
     t->frame_ctx->esi = tf->esi;
     t->frame_ctx->edi = tf->edi;
-    t->frame_ctx->ebp = tf->ebp;
+    t->frame_ctx->ebp = tf->ebp;*/
 }
 
 void load_user_ctx(struct task *t, struct trap_frame *tf)
 {
-    tf->eip = t->frame_ctx->eip;
+    /*tf->eip = t->frame_ctx->eip;
     tf->esp = t->frame_ctx->esp;
     tf->eflags = t->frame_ctx->eflags;
 
@@ -52,5 +57,5 @@ void load_user_ctx(struct task *t, struct trap_frame *tf)
     tf->edx = t->frame_ctx->edx;
     tf->esi = t->frame_ctx->esi;
     tf->edi = t->frame_ctx->edi;
-    tf->ebp = t->frame_ctx->ebp;
+    tf->ebp = t->frame_ctx->ebp;*/
 }

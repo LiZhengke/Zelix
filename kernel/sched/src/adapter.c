@@ -1,7 +1,9 @@
 #include "adapter.h"
+#include "heap_alloc.h"
 
 void *sched_task_alloc(size_t size)
 {
+    size = (size + 7) & ~7;   // 8-byte 对齐
     return pvPortMalloc(size);
 }
 

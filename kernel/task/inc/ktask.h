@@ -4,8 +4,8 @@
 #include "ktask_internal.h"
 #include "mm.h"
 
-#define USER_STACK_SIZE 4096
-#define KERNEL_STACK_SIZE 4096
+#define USER_STACK_SIZE (16*4096)
+#define KERNEL_STACK_SIZE (26*4096)
 
 struct files_struct;
 typedef void (*task_entry_t)(void *arg);
@@ -20,8 +20,8 @@ enum task_state {
 };
 
 enum task_type {
-    TT_USER_PROCESS,
-    TT_KERNEL_THREAD,
+    TASK_TYPE_USER_PROCESS,
+    TASK_TYPE_KERNEL_THREAD,
 };
 /* =========================
    核心 task 结构
@@ -32,15 +32,19 @@ struct task {
 
     /* 进程资源 */
     mm_struct *mm;
+    mm_struct *active_mm; /* For threads sharing the same address space */
     struct files_struct *files;
 
-    /* 用户态 */
     struct trap_frame* frame_ctx;
+    uint32_t *kernel_stack_top;
+    size_t kernel_stack_size;
+
     uint32_t *user_stack_top;
     size_t user_stack_size;
 
     /* 入口 */
     task_entry_t entry;
+    uint32_t entry_virt; /* 虚拟地址形式的入口，供用户进程使用 */
     void *arg;
 
     /* 状态 */

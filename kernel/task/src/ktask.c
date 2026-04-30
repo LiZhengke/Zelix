@@ -6,6 +6,8 @@
 #include "task_context.h"
 
 #define USER_STACK_ADDRESS 0xBFFFF000
+#define USER_ENTRY_ADDRESS 0x08048000
+int task_started = 0;
 
 int is_user_task(struct task *t)
 {
@@ -46,11 +48,20 @@ static void kernel_task_entry(void *arg)
 {
     struct task *t = (struct task *)arg;
 
-    sched_bind_task(sched_current_handle(), t);
+    // taskENTER_CRITICAL();
+    load_page_directory(t->mm->pgd_phys);
+     /* Update TSS esp0 to the new kernel stack. */
+     /* Note: For user processes, we also need to update TSS esp0 to point to the new kernel stack. For kernel threads, they already have their own kernel stack, so we just need to set esp0 to the top of that stack. */
+    // if (is_user_task(t)) {
+    //     tss_set_esp0((uint32_t)alloc_user_stack(t));
+    // sched_bind_task(sched_current_handle(), t);
     t->started = 1;
-
     if (t->entry != NULL) {
         arch_task_setup_frame_context(t);
+    }
+    // taskEXIT_CRITICAL();
+
+    if (t->entry != NULL) {
         return_to_user(t->frame_ctx);
     }
 
@@ -80,10 +91,11 @@ struct task *task_create(const char *name, task_entry_t entry, enum task_type ty
     t->arg = arg;
     t->state = TASK_RUNNING;
     t->type = type;
-    if(type == TT_USER_PROCESS) {
+    if(type == TASK_TYPE_USER_PROCESS) {
+        t->entry_virt = USER_ENTRY_ADDRESS; /* For user processes, we use a fixed virtual address for the entry point. */
         t->user_stack_top = (uint32_t*)USER_STACK_ADDRESS;
         t->user_stack_size = user_stack_size;
-        t->mm = mm_create(t);
+        t->mm = mm_create(t, name);
     } else {
         t->user_stack_top = NULL;
         t->mm = NULL;
@@ -91,7 +103,7 @@ struct task *task_create(const char *name, task_entry_t entry, enum task_type ty
     }
 
     status = sched_task_create(
-        type == TT_USER_PROCESS ? kernel_task_entry : kernel_thread_entry,
+        type == TASK_TYPE_USER_PROCESS ? kernel_task_entry : kernel_thread_entry,
         name,
         KERNEL_STACK_SIZE / sizeof(StackType_t),
         t,

@@ -61,6 +61,7 @@ void init_paging() {
         // Write physical address (i * 4KB) into the page table.
         page_table[i] = (i * 0x1000) | PG_PRESENT | PG_RW;
 #if configSUPPORT_PAGE_TABLE_TWO == 1
+        // Fill the second page table: map 4.0MB to 8.0MB (identity mapping).
         page_table2[i] = (i * 0x1000 + 0x400000) | PG_PRESENT | PG_RW;
 #endif
     }
