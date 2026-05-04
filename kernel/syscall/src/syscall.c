@@ -4,9 +4,13 @@
 #include "syscall.h"
 #include "FreeRTOS.h"
 #include "task.h"
+#include "ktask.h"
+#include "adapter.h"
 #include "semphr.h"
 #include "tss.h"
 #include "interrupt.h"
+#include "loader.h"
+#include "task_context.h"
 
 // Forward declaration
 extern int printf(const char *__restrict __format, ...);
@@ -252,20 +256,77 @@ static int sys_get_task_name(uint32_t a0,uint32_t a1,uint32_t a2,uint32_t a3,uin
 
 static int sys_exec(uint32_t a0,uint32_t a1,uint32_t a2,uint32_t a3,uint32_t a4)
 {
-    const char *path = (const char *)a0;
-    (void)a1; (void)a2; (void)a3; (void)a4;
+    const char* path = (const char *)a0;
+    const void* arg = (const void*)a1;
+    struct task *t, *current;
+    mm_struct *new_mm;
+
+    (void)a2; (void)a3; (void)a4;
+    void *entry;
     if (path == NULL)
         return -EINVAL;
 
-    // elf_exec(path, pxCurrentTCB->pxDummy3); // pxDummy3 mirrors mm pointer in TCB_t, which is used as pgd for user tasks
-    return 0; // 实际不会执行到这里
+    current = current_task();
+    if (current == NULL)
+        return -EINVAL;
+
+    t = alloc_task();
+    if (t == NULL) {
+        return -EINVAL;
+    }
+
+    t->arg = (void *)arg;
+    t->state = TASK_RUNNING;
+    t->type = TASK_TYPE_USER_PROCESS;
+    t->entry_virt = USER_ENTRY_ADDRESS;
+    t->user_stack_top = (uint32_t*)USER_STACK_ADDRESS;
+    t->user_stack_size = USER_STACK_SIZE / sizeof(StackType_t);
+
+    new_mm = mm_create(t, path);
+    if (new_mm == NULL) {
+        sched_task_free(t);
+        return -EINVAL;
+    }
+
+    entry = elf_load(path, new_mm->pgd, false);
+    if (entry == NULL) {
+        mm_destroy(new_mm);
+        sched_task_free(t);
+        return -EINVAL;
+    }
+
+    t->entry = (task_entry_t)entry;
+    t->entry_virt = (uint32_t)entry;
+    t->started = 1;
+    t->mm = new_mm;
+    t->tcb = current->tcb;
+
+     /* Switch to the new address space and start executing the new task. */
+     sched_bind_task(t->tcb, t);
+     load_page_directory(t->mm->pgd_phys);
+     arch_task_setup_frame_context(t);
+     return_to_user(t->frame_ctx);
+
+    if (current->mm != NULL) {
+        mm_destroy(current->mm);
+    }
+    sched_bind_task(t->tcb, t);
+    sched_task_free(current);
+    current = NULL;
+
+    load_page_directory(t->mm->pgd_phys);
+    arch_task_setup_frame_context(t);
+    return_to_user(t->frame_ctx);
+
+    __builtin_unreachable();
+    return 0;
 }
 
 static int sys_exit(uint32_t a0,uint32_t a1,uint32_t a2,uint32_t a3,uint32_t a4)
 {
     int code = (int)a0;
     (void)a1; (void)a2; (void)a3; (void)a4;
-    // task_exit();
+    task_exit(code);
     // schedule();
 }
 

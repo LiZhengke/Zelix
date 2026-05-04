@@ -19,4 +19,4 @@ typedef struct
 } mm_struct;
 
 mm_struct* mm_create(struct task * t, const char *name);
-void destroy_mm(mm_struct *mm);
+void mm_destroy(mm_struct *mm);

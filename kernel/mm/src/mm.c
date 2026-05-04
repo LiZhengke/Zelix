@@ -42,10 +42,24 @@ mm_struct* mm_create(struct task * t, const char *name) {
     return mm;
 }
 
-void destroy_mm(mm_struct *mm) {
-    if (mm->pgd_phys) {
-        /* Only free the page directory if this is a process (not a thread sharing the same pgd) */
-        pmm_free_page(mm->pgd_phys);
+void mm_destroy(mm_struct *mm) {
+    if (mm == NULL) {
+        return;
     }
+
+    /* Shared address spaces are freed only when the last owner exits. */
+    if (mm->count > 1) {
+        mm->count--;
+        return;
+    }
+
+    if (mm->pgd_phys != 0U) {
+        /* Release user mappings/page tables before freeing the page directory itself. */
+        free_user_space(mm->pgd);
+        pmm_free_page(mm->pgd_phys);
+        mm->pgd_phys = 0U;
+        mm->pgd = NULL;
+    }
+
     sched_task_free(mm);
 }

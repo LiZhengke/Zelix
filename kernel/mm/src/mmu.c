@@ -253,7 +253,7 @@ uint32_t map_user_code(pde_t* pgd,void* user_entry,size_t user_task_section_size
         map_page( pgd,
                 virt_page,
                 phys_page,
-                PG_PRESENT | PG_RW | PG_USER );
+                PG_PRESENT | PG_EXEC | PG_USER );
     }
 
     return prog_phys;
@@ -280,11 +280,12 @@ void free_user_space(uint32_t *pgd) {
     for (int i = 0; i < KERNEL_PDE_START; i++) {
         uint32_t pde = pgdir[i];
 
-        // 跳过不存在的
+        /* Skip non-present PDEs. */
         if (!(pde & PG_PRESENT))
             continue;
 
-        uint32_t *pt = (uint32_t*)(pde & ~0xFFF);
+        phys_addr_t pt_phys = (phys_addr_t)(pde & 0xFFFFF000U);
+        uint32_t *pt = (uint32_t *)p2v(pt_phys);
 
         for (int j = 0; j < 1024; j++) {
             uint32_t pte = pt[j];
@@ -292,15 +293,16 @@ void free_user_space(uint32_t *pgd) {
             if (!(pte & PG_PRESENT))
                 continue;
 
-            // 🔥 只释放用户页
+            /* Release only user pages, keep kernel mappings intact. */
             if (pte & PG_USER) {
-                void *phys = (void*)(pte & ~0xFFF);
-                pmm_free_pages((phys_addr_t)phys, 1);   // 释放物理页
+                phys_addr_t page_phys = (phys_addr_t)(pte & 0xFFFFF000U);
+                pmm_free_page(page_phys);
             }
             pt[j] = 0;
         }
-        // 🔥 释放页表本身
-        pmm_free_pages((phys_addr_t)pt, 1);
+
+        /* Release page table page itself. */
+        pmm_free_page(pt_phys);
         pgdir[i] = 0;
     }
 }

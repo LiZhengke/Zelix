@@ -5,8 +5,7 @@
 #include "stdio.h"
 #include "task_context.h"
 
-#define USER_STACK_ADDRESS 0xBFFFF000
-#define USER_ENTRY_ADDRESS 0x08048000
+
 int task_started = 0;
 
 int is_user_task(struct task *t)
@@ -21,7 +20,7 @@ int is_kernel_thread(struct task *t)
 
 static struct task *task_list = NULL;
 
-static struct task *alloc_task(void)
+struct task *alloc_task(void)
 {
     struct task *t = sched_task_alloc(sizeof(*t));
     if (!t) return NULL;
@@ -40,7 +39,7 @@ static void kernel_thread_entry(void *arg)
 {
     struct task *t = arg;
     t->entry(t->arg);
-    do_exit(0);
+    task_exit(0);
 }
 
 
@@ -58,10 +57,6 @@ static void kernel_task_entry(void *arg)
     t->started = 1;
     if (t->entry != NULL) {
         arch_task_setup_frame_context(t);
-    }
-    // taskEXIT_CRITICAL();
-
-    if (t->entry != NULL) {
         return_to_user(t->frame_ctx);
     }
 
@@ -144,19 +139,20 @@ void task_destroy(struct task *t)
     (void)t;
 }
 
-void do_exit(int code)
+void task_exit(int code)
 {
     struct task *t = current_task();
+    if(t == NULL) {
+        return;
+    }
 
     t->exit_code = code;
     t->state = TASK_ZOMBIE;
 
-    /* 释放资源（简化版） */
     if (t->mm)
-        destroy_mm(t->mm);
+        mm_destroy(t->mm);
 
-    if (t->user_stack_top)
-        sched_task_free((void *)((uint32_t)t->user_stack_top - t->user_stack_size));
+    sched_task_free(t);
 
         // wakeup_parent(t);
     /* 删除 FreeRTOS task */
@@ -167,5 +163,5 @@ void do_exit(int code)
 
 void user_exit_trampoline(void)
 {
-    do_exit(0);
+    task_exit(0);
 }

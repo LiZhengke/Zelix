@@ -7,6 +7,9 @@
 #define USER_STACK_SIZE (16*4096)
 #define KERNEL_STACK_SIZE (26*4096)
 
+#define USER_STACK_ADDRESS 0xBFFFF000
+#define USER_ENTRY_ADDRESS 0x08048000
+
 struct files_struct;
 typedef void (*task_entry_t)(void *arg);
 
@@ -68,5 +71,5 @@ void task_destroy(struct task *t);
 
 int is_user_task(struct task *t);
 int is_kernel_thread(struct task *t);
-
-void do_exit(int code);
+struct task *alloc_task(void);
+void task_exit(int code);

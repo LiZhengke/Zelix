@@ -124,6 +124,12 @@ void exception_handler(struct exc_regs *r) {
 
     // Print exception information
     printf("Exception Handler - Vector: %d, Error Code: %d\n", r->vector, r->err_code);
+    if( r->vector == 14U )
+    {
+        uint32_t fault_addr;
+        __asm__ volatile ( "mov %%cr2, %0" : "=r" ( fault_addr ) );
+        printf( "  Page Fault: CR2=0x%x\n", fault_addr );
+    }
     printf("  Segments: CS=0x%x DS=0x%x ES=0x%x GS=0x%x\n", r->cs, r->ds, r->es, r->gs);
     printf("  Execution: EIP=0x%x EFLAGS=0x%x\n", r->eip, r->eflags);
     printf("  User Stack: ESP=0x%x SS=0x%x\n", r->user_esp, r->user_ss);

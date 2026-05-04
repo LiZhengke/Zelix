@@ -44,9 +44,38 @@ void init_idt( void )
 {
     IDTPointer_t xIDT;
 
-    extern void exc0(); // Division by zero exception
+    extern void exc0();
+    extern void exc1();
+    extern void exc2();
+    extern void exc3();
+    extern void exc4();
+    extern void exc5();
+    extern void exc6();
+    extern void exc7();
     extern void exc8();
-    extern void exc13(); // General Protection Fault (GPF)
+    extern void exc9();
+    extern void exc10();
+    extern void exc11();
+    extern void exc12();
+    extern void exc13();
+    extern void exc14();
+    extern void exc15();
+    extern void exc16();
+    extern void exc17();
+    extern void exc18();
+    extern void exc19();
+    extern void exc20();
+    extern void exc21();
+    extern void exc22();
+    extern void exc23();
+    extern void exc24();
+    extern void exc25();
+    extern void exc26();
+    extern void exc27();
+    extern void exc28();
+    extern void exc29();
+    extern void exc30();
+    extern void exc31();
     extern void exc32();
     extern void exc33();
     extern void exc34();
@@ -73,11 +102,31 @@ void init_idt( void )
         ( ISR_Handler_t ) exc44, ( ISR_Handler_t ) exc45,
         ( ISR_Handler_t ) exc46, ( ISR_Handler_t ) exc47,
     };
+    ISR_Handler_t const pxExceptionStubs[] = {
+        ( ISR_Handler_t ) exc0,  ( ISR_Handler_t ) exc1,
+        ( ISR_Handler_t ) exc2,  ( ISR_Handler_t ) exc3,
+        ( ISR_Handler_t ) exc4,  ( ISR_Handler_t ) exc5,
+        ( ISR_Handler_t ) exc6,  ( ISR_Handler_t ) exc7,
+        ( ISR_Handler_t ) exc8,  ( ISR_Handler_t ) exc9,
+        ( ISR_Handler_t ) exc10, ( ISR_Handler_t ) exc11,
+        ( ISR_Handler_t ) exc12, ( ISR_Handler_t ) exc13,
+        ( ISR_Handler_t ) exc14, ( ISR_Handler_t ) exc15,
+        ( ISR_Handler_t ) exc16, ( ISR_Handler_t ) exc17,
+        ( ISR_Handler_t ) exc18, ( ISR_Handler_t ) exc19,
+        ( ISR_Handler_t ) exc20, ( ISR_Handler_t ) exc21,
+        ( ISR_Handler_t ) exc22, ( ISR_Handler_t ) exc23,
+        ( ISR_Handler_t ) exc24, ( ISR_Handler_t ) exc25,
+        ( ISR_Handler_t ) exc26, ( ISR_Handler_t ) exc27,
+        ( ISR_Handler_t ) exc28, ( ISR_Handler_t ) exc29,
+        ( ISR_Handler_t ) exc30, ( ISR_Handler_t ) exc31,
+    };
     uint32_t ulNum;
 
-    prvSetInterruptGate(0, (ISR_Handler_t)exc0, portIDT_FLAGS);
-    prvSetInterruptGate(8, (ISR_Handler_t)exc8, portIDT_FLAGS);
-    prvSetInterruptGate(13, (ISR_Handler_t)exc13, portIDT_FLAGS);
+    /* Install stubs for all CPU exceptions (vectors 0..31). */
+    for( ulNum = 0; ulNum < ( sizeof( pxExceptionStubs ) / sizeof( pxExceptionStubs[ 0 ] ) ); ulNum++ )
+    {
+        prvSetInterruptGate( ( uint8_t ) ulNum, pxExceptionStubs[ ulNum ], portIDT_FLAGS );
+    }
 
     /* Install default stubs for legacy PIC IRQs (vectors 32..47). */
     for( ulNum = 0; ulNum < ( sizeof( pxIRQStubs ) / sizeof( pxIRQStubs[ 0 ] ) ); ulNum++ )

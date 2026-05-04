@@ -3,8 +3,10 @@
 #include "ktask.h"
 #include "task_context.h"
 
-#define USER_CS 0x1B
-#define USER_DS 0x23
+#define USER_CS         0x1B
+#define USER_DS         0x23
+#define USER_EFLAGS     0x202
+
 
 void arch_task_setup_frame_context(struct task *t)
 {
@@ -22,7 +24,7 @@ void arch_task_setup_frame_context(struct task *t)
     tf->ds = tf->es = tf->fs = tf->gs = tf->ss = USER_DS;
 
     tf->cs = USER_CS;
-    tf->eflags = 0x202;
+    tf->eflags = USER_EFLAGS;
     tf->esp = (uint32_t)t->user_stack_top;
 
     tf->eax = 0;

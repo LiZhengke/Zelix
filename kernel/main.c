@@ -15,6 +15,9 @@
 #include "interrupt.h"
 // #define TEST_THREAD_ONLY
 #define configUSE_I8259 1
+
+#define USER_ELF "user_task.elf"
+// #define USER_ELF "zlsh"
 static void task_user(void *arg)
 {
     (void)arg;
@@ -82,7 +85,7 @@ int kernel_main()
 #ifdef TEST_THREAD_ONLY
     if (task_system_start("init", init_task_main, TASK_TYPE_KERNEL_THREAD, USER_STACK_SIZE / sizeof(StackType_t), NULL) == NULL) {
 #else
-    if (task_system_start("user_task.elf", init_task_main, TASK_TYPE_USER_PROCESS, USER_STACK_SIZE / sizeof(StackType_t), NULL) == NULL) {
+    if (task_system_start(USER_ELF, init_task_main, TASK_TYPE_USER_PROCESS, USER_STACK_SIZE / sizeof(StackType_t), NULL) == NULL) {
 #endif
         while (1) {
             /* fatal */
