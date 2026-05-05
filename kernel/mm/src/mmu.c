@@ -163,7 +163,7 @@ void create_user_page_directory(uint32_t* pgd_phys, uint32_t** pgd_virt) {
         pd[i] = 0;
     }
 
-    pde_t* pgd = get_page_directory(); /* Ensure the current page directory is loaded and accessible. */
+    pde_t* pgd = (uint32_t *)p2v(get_page_directory()); /* Ensure the current page directory is loaded and accessible. */
     /* Copy kernel-space entries (768 - 1023) from the boot page directory */
     for (int i = KERNEL_PDE_START; i < 1024; i++) {
         pd[i] = pgd[i];

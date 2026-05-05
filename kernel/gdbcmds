@@ -14,7 +14,7 @@ display/x $esp
 #b kernel_main
 #b kernel_task_entry
 b vPortStartFirstTask
-b vPortYieldCall
+#b vPortYieldCall
 b init_task_main
 #b return_to_user
 #b uSysCallDispatch
@@ -23,7 +23,7 @@ b init_task_main
 #b create_user_page_directory
 #b map_user_code
 #b vPortYieldCall
-b vPortTimerHandler
+#b vPortTimerHandler
 #b map_user_stack
 #b vPortSysCall
 b exception_handler

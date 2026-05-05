@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include "page.h"
 
-#define MEMORY_MAX_SIZE (128 * 1024 * 1024) /* 128MB */
+#define MEMORY_MAX_SIZE (64 * 1024 * 1024) /* 64MB */
 #define TOTAL_PAGES (MEMORY_MAX_SIZE / PAGE_SIZE)
 #define BITMAP_SIZE (TOTAL_PAGES / 8)
 

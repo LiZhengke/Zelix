@@ -16,8 +16,8 @@
 // #define TEST_THREAD_ONLY
 #define configUSE_I8259 1
 
-#define USER_ELF "user_task.elf"
-// #define USER_ELF "zlsh"
+// #define USER_ELF "user_task.elf"
+#define USER_ELF "zlsh"
 static void task_user(void *arg)
 {
     (void)arg;

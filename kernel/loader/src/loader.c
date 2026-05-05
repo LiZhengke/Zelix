@@ -195,18 +195,21 @@ void *elf_load(const char *path, pde_t* pgd, bool check_only)
             continue;
         }
 
+        printf("Mapping user code...\n");
         if (!loader_map_missing_range(pgd, va_start, va_end)) {
             printf("map user code failed\n");
             f_close(&file);
             return NULL;
         }
 
+        printf("Applying segment flags...\n");
         if (!loader_apply_segment_flags(pgd, va_start, va_end, phdr.p_flags)) {
             printf("set segment flags failed\n");
             f_close(&file);
             return NULL;
         }
 
+        printf("Loading segment data...\n");
         f_lseek(&file, phdr.p_offset);
         if (phdr.p_filesz > 0 && !loader_read_user_range(&file, pgd, phdr.p_vaddr, phdr.p_filesz)) {
             printf("read segment failed\n");
@@ -214,6 +217,7 @@ void *elf_load(const char *path, pde_t* pgd, bool check_only)
             return NULL;
         }
 
+        printf("Zeroing BSS if needed...\n");
         if (phdr.p_memsz > phdr.p_filesz &&
             !loader_zero_user_range(pgd, phdr.p_vaddr + phdr.p_filesz, phdr.p_memsz - phdr.p_filesz)) {
             printf("zero bss failed\n");

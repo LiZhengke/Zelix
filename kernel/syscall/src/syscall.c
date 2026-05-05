@@ -11,6 +11,11 @@
 #include "interrupt.h"
 #include "loader.h"
 #include "task_context.h"
+#include "io.h"
+
+#define COM1_PORT 0x3F8
+#define UART_LSR 5
+#define UART_LSR_DR 0x01
 
 // Forward declaration
 extern int printf(const char *__restrict __format, ...);
@@ -32,6 +37,7 @@ static int sys_task_create(uint32_t a0,uint32_t a1,uint32_t a2,uint32_t a3,uint3
 static int sys_tick_count(uint32_t a0,uint32_t a1,uint32_t a2,uint32_t a3,uint32_t a4);
 static int sys_get_task_name(uint32_t a0,uint32_t a1,uint32_t a2,uint32_t a3,uint32_t a4);
 static int sys_exec(uint32_t a0,uint32_t a1,uint32_t a2,uint32_t a3,uint32_t a4);
+static int sys_read(uint32_t a0,uint32_t a1,uint32_t a2,uint32_t a3,uint32_t a4);
 static int sys_exit(uint32_t a0,uint32_t a1,uint32_t a2,uint32_t a3,uint32_t a4);
 
 
@@ -50,6 +56,7 @@ const syscall_t syscall_table[SYS_MAX] = {
     sys_tick_count,
     sys_get_task_name,
     sys_exec,
+    sys_read,
 };
 
 
@@ -120,6 +127,30 @@ static int sys_write(uint32_t a0,uint32_t a1,uint32_t a2,uint32_t a3,uint32_t a4
     }
     return len;
 }
+
+static int sys_read(uint32_t a0,uint32_t a1,uint32_t a2,uint32_t a3,uint32_t a4)
+{
+    (void)a3; (void)a4;
+    int fd = (int)a0;
+    char *buf = (char *)a1;
+    int len = (int)a2;
+    int i;
+
+    if (fd != 0)
+        return -EINVAL;
+    if (buf == NULL || len <= 0)
+        return -EINVAL;
+
+    for (i = 0; i < len; i++) {
+        if ((inb(COM1_PORT + UART_LSR) & UART_LSR_DR) == 0U) {
+            break;
+        }
+        buf[i] = (char)inb(COM1_PORT);
+    }
+
+    return i;
+}
+
 static int sys_delay(uint32_t a0,uint32_t a1,uint32_t a2,uint32_t a3,uint32_t a4)
 {
     (void)a1; (void)a2; (void)a3; (void)a4;
@@ -258,8 +289,8 @@ static int sys_exec(uint32_t a0,uint32_t a1,uint32_t a2,uint32_t a3,uint32_t a4)
 {
     const char* path = (const char *)a0;
     const void* arg = (const void*)a1;
-    struct task *t, *current;
-    mm_struct *new_mm;
+    struct task *current;
+    mm_struct *new_mm, *old_mm;
 
     (void)a2; (void)a3; (void)a4;
     void *entry;
@@ -270,53 +301,43 @@ static int sys_exec(uint32_t a0,uint32_t a1,uint32_t a2,uint32_t a3,uint32_t a4)
     if (current == NULL)
         return -EINVAL;
 
-    t = alloc_task();
-    if (t == NULL) {
-        return -EINVAL;
-    }
+    current->arg = (void *)arg;
+    current->state = TASK_RUNNING;
+    current->type = TASK_TYPE_USER_PROCESS;
+    current->entry_virt = USER_ENTRY_ADDRESS;
+    current->user_stack_top = (uint32_t*)USER_STACK_ADDRESS;
+    current->user_stack_size = USER_STACK_SIZE / sizeof(StackType_t);
 
-    t->arg = (void *)arg;
-    t->state = TASK_RUNNING;
-    t->type = TASK_TYPE_USER_PROCESS;
-    t->entry_virt = USER_ENTRY_ADDRESS;
-    t->user_stack_top = (uint32_t*)USER_STACK_ADDRESS;
-    t->user_stack_size = USER_STACK_SIZE / sizeof(StackType_t);
-
-    new_mm = mm_create(t, path);
+    new_mm = mm_create(current, path);
     if (new_mm == NULL) {
-        sched_task_free(t);
         return -EINVAL;
     }
 
     entry = elf_load(path, new_mm->pgd, false);
     if (entry == NULL) {
         mm_destroy(new_mm);
-        sched_task_free(t);
         return -EINVAL;
     }
 
-    t->entry = (task_entry_t)entry;
-    t->entry_virt = (uint32_t)entry;
-    t->started = 1;
-    t->mm = new_mm;
-    t->tcb = current->tcb;
+    current->entry = (task_entry_t)entry;
+    current->entry_virt = (uint32_t)entry;
+    current->started = 1;
+    old_mm = current->mm;
+    current->mm = new_mm;
 
-     /* Switch to the new address space and start executing the new task. */
-     sched_bind_task(t->tcb, t);
-     load_page_directory(t->mm->pgd_phys);
-     arch_task_setup_frame_context(t);
-     return_to_user(t->frame_ctx);
+    /* Switch to the new address space and start executing the new task. */
+    printf("load new page dir\n");
+    load_page_directory(current->mm->pgd_phys);
+    printf("Setting up frame context...\n");
+    arch_task_setup_frame_context(current);
 
-    if (current->mm != NULL) {
-        mm_destroy(current->mm);
+    printf("Destroying current task\n");
+    if (old_mm != NULL) {
+        mm_destroy(old_mm);
     }
-    sched_bind_task(t->tcb, t);
-    sched_task_free(current);
-    current = NULL;
 
-    load_page_directory(t->mm->pgd_phys);
-    arch_task_setup_frame_context(t);
-    return_to_user(t->frame_ctx);
+    printf("Switching to the new task at entry 0x%x\n", (uint32_t)entry);
+    return_to_user(current->frame_ctx);
 
     __builtin_unreachable();
     return 0;
