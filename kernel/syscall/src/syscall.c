@@ -20,6 +20,7 @@
 // Forward declaration
 extern int printf(const char *__restrict __format, ...);
 extern int printf_va(const char *__restrict __format, va_list *__ap);
+extern volatile uint32_t ulPortYieldPending;
 typedef int (*syscall_t)(uint32_t, uint32_t,
                          uint32_t, uint32_t, uint32_t);
 /* syscall functions interface */
@@ -104,7 +105,8 @@ int os_err_to_errno(OS_ERR err)
 static int sys_yield(uint32_t a0,uint32_t a1,uint32_t a2,uint32_t a3,uint32_t a4)
 {
     (void)a0; (void)a1; (void)a2; (void)a3; (void)a4;
-    taskYIELD();
+    /* Defer context switch to interrupt epilogue instead of nesting a yield interrupt inside syscall handling. */
+    ulPortYieldPending = 1U;
     return 0;
 }
 
