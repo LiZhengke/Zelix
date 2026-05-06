@@ -43,4 +43,6 @@
 
 #define STATIC_ASSERT( x )    \
     typedef char static_assertion_failed[ ( x ) ? 1 : -1 ]
+
+#define configMAX_TASK_NAME_LEN 32
 #endif /* FREERTOS_CONFIG_H */

@@ -163,7 +163,7 @@ void create_user_page_directory(uint32_t* pgd_phys, uint32_t** pgd_virt) {
         pd[i] = 0;
     }
 
-    pde_t* pgd = (uint32_t *)p2v(get_page_directory()); /* Ensure the current page directory is loaded and accessible. */
+    pde_t* pgd = get_page_directory(); /* get_page_directory() already returns a kernel virtual address. */
     /* Copy kernel-space entries (768 - 1023) from the boot page directory */
     for (int i = KERNEL_PDE_START; i < 1024; i++) {
         pd[i] = pgd[i];
@@ -261,7 +261,7 @@ uint32_t map_user_code(pde_t* pgd,void* user_entry,size_t user_task_section_size
 
 void mmu_init(void) {
     pmm_init(MEMORY_MAX_SIZE); /* Initialize the physical memory manager (assume 128MB total RAM). */
-    kmalloc_init(p2v((phys_addr_t)get_page_directory()), 256); /* Initialize kernel heap, preallocating 256 pages (1MB). */
+    kmalloc_init(get_page_directory(), 256); /* get_page_directory() already returns a kernel virtual address. */
 
     #if ( configRUN_ADDITIONAL_TESTS == 1 )
         prvRunMmuUnitTests();
@@ -276,6 +276,7 @@ void mmu_init(void) {
 */
 void free_user_space(uint32_t *pgd) {
     uint32_t *pgdir = pgd;
+    uint32_t *boot_pgdir = get_page_directory();
 
     for (int i = 0; i < KERNEL_PDE_START; i++) {
         uint32_t pde = pgdir[i];
@@ -283,6 +284,11 @@ void free_user_space(uint32_t *pgd) {
         /* Skip non-present PDEs. */
         if (!(pde & PG_PRESENT))
             continue;
+
+        /* Low identity-mapped tables may be shared with the boot page directory. */
+        if (pde == boot_pgdir[i]) {
+            continue;
+        }
 
         phys_addr_t pt_phys = (phys_addr_t)(pde & 0xFFFFF000U);
         uint32_t *pt = (uint32_t *)p2v(pt_phys);

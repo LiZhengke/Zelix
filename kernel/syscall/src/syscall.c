@@ -319,6 +319,13 @@ static int sys_exec(uint32_t a0,uint32_t a1,uint32_t a2,uint32_t a3,uint32_t a4)
         return -EINVAL;
     }
 
+    //TODO : should be better
+    /*char *name = pcTaskGetName(NULL);
+    uint32_t i;
+    for (i = 0; i < configMAX_TASK_NAME_LEN; i++)
+        name[i] = path[i];
+    name[i] = '\0';*/
+
     current->entry = (task_entry_t)entry;
     current->entry_virt = (uint32_t)entry;
     current->started = 1;

@@ -30,3 +30,4 @@ b exception_handler
 #watch *(int*)0xc011d050
 #b vApplicationIdleHook
 #b pxPortInitialiseStack
+b arch_task_setup_frame_context

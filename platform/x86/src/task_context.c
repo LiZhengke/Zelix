@@ -6,17 +6,16 @@
 #define USER_CS         0x1B
 #define USER_DS         0x23
 #define USER_EFLAGS     0x202
+extern uint32_t ulTopOfSystemStack;
 
 
 void arch_task_setup_frame_context(struct task *t)
 {
     struct trap_frame *tf;
-    uint32_t* sp = (uint32_t*)t->tcb;
+    uint32_t* sp = (uint32_t*)ulTopOfSystemStack;
 
     sp -= sizeof(struct trap_frame) / sizeof(uint32_t); /* Reserve space for trap frame */
     tf = (struct trap_frame *)sp;
-
-    t->tcb = (tcb_t)sp;  /* Set the task's top of stack to the new value after reserving space for the trap frame. */
 
     memset(tf, 0, sizeof(*tf));
     tf->eip = (uint32_t)t->entry_virt; /* User entry point virtual address. */
