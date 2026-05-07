@@ -1,0 +1,70 @@
+[  2%] Building C object CMakeFiles/freertos_kernel.dir/_deps/freertos-src/tasks.c.obj
+[  4%] Building C object CMakeFiles/freertos_kernel.dir/_deps/freertos-src/queue.c.obj
+[  6%] Building C object CMakeFiles/freertos_kernel.dir/_deps/freertos-src/list.c.obj
+[  8%] Building C object CMakeFiles/freertos_kernel.dir/_deps/freertos-src/timers.c.obj
+[ 10%] Building C object CMakeFiles/freertos_kernel.dir/_deps/freertos-src/event_groups.c.obj
+[ 12%] Building C object CMakeFiles/freertos_kernel.dir/_deps/freertos-src/stream_buffer.c.obj
+[ 14%] Building C object CMakeFiles/freertos_kernel.dir/_deps/freertos-src/portable/MemMang/heap_4.c.obj
+[ 17%] Building C object CMakeFiles/freertos_kernel.dir/platform/x86/port/port.c.obj
+[ 19%] Building ASM object CMakeFiles/freertos_kernel.dir/platform/x86/port/portasm.S.obj
+[ 21%] Linking C static library libfreertos_kernel.a
+[ 21%] Built target freertos_kernel
+[ 23%] Building C object CMakeFiles/fatfs.dir/_deps/fatfs-src/source/ff.c.obj
+[ 25%] Building C object CMakeFiles/fatfs.dir/_deps/fatfs-src/source/ffsystem.c.obj
+[ 27%] Building C object CMakeFiles/fatfs.dir/_deps/fatfs-src/source/ffunicode.c.obj
+[ 29%] Building C object CMakeFiles/fatfs.dir/kernel/fs/fatfs/src/diskio.c.obj
+[ 31%] Building C object CMakeFiles/fatfs.dir/kernel/fs/fatfs/src/fatfs.c.obj
+[ 34%] Building C object CMakeFiles/fatfs.dir/kernel/dev/blk/src/ata.c.obj
+[ 36%] Linking C static library libfatfs.a
+[ 36%] Built target fatfs
+[ 38%] Building ASM object platform/x86/CMakeFiles/x86_platform.dir/src/start.S.obj
+[ 40%] Building C object platform/x86/CMakeFiles/x86_platform.dir/src/tss.c.obj
+[ 42%] Building C object platform/x86/CMakeFiles/x86_platform.dir/src/page.c.obj
+[ 44%] Building C object platform/x86/CMakeFiles/x86_platform.dir/src/gdt.c.obj
+[ 46%] Building C object platform/x86/CMakeFiles/x86_platform.dir/src/idt.c.obj
+[ 48%] Building C object platform/x86/CMakeFiles/x86_platform.dir/src/i8259.c.obj
+[ 51%] Building ASM object platform/x86/CMakeFiles/x86_platform.dir/src/exception.S.obj
+[ 53%] Building C object platform/x86/CMakeFiles/x86_platform.dir/src/interrupt.c.obj
+[ 55%] Building C object platform/x86/CMakeFiles/x86_platform.dir/src/task_context.c.obj
+[ 57%] Linking C static library libx86_platform.a
+[ 57%] Built target x86_platform
+[ 59%] Building C object kernel/libc/CMakeFiles/kernel_libc.dir/src/printf.c.obj
+[ 61%] Building C object kernel/libc/CMakeFiles/kernel_libc.dir/src/putchar.c.obj
+[ 63%] Building C object kernel/libc/CMakeFiles/kernel_libc.dir/src/string.c.obj
+[ 65%] Linking C static library libkernel_libc.a
+[ 65%] Built target kernel_libc
+[ 68%] Building C object kernel/sched/CMakeFiles/sched.dir/src/adapter.c.obj
+[ 70%] Linking C static library libsched.a
+[ 70%] Built target sched
+[ 72%] Building C object kernel/syscall/CMakeFiles/syscall.dir/src/syscall.c.obj
+/home/max/work/Zelix/kernel/syscall/src/syscall.c: In function ‘sys_task_create’:
+/home/max/work/Zelix/kernel/syscall/src/syscall.c:252:33: warning: passing argument 6 of ‘sched_task_create’ from incompatible pointer type [-Wincompatible-pointer-types]
+  252 |                                 pxTCB );
+      |                                 ^~~~~
+      |                                 |
+      |                                 StaticTask_t * {aka struct xSTATIC_TCB *}
+In file included from /home/max/work/Zelix/kernel/syscall/src/syscall.c:8:
+/home/max/work/Zelix/kernel/sched/inc/adapter.h:16:44: note: expected ‘struct tskTaskControlBlock **’ but argument is of type ‘StaticTask_t *’ {aka ‘struct xSTATIC_TCB *’}
+   16 |                              TaskHandle_t *handle);
+      |                              ~~~~~~~~~~~~~~^~~~~~
+/home/max/work/Zelix/kernel/syscall/src/syscall.c:247:27: warning: initialization of ‘TaskHandle_t’ {aka ‘struct tskTaskControlBlock *’} from ‘BaseType_t’ {aka ‘int’} makes pointer from integer without a cast [-Wint-conversion]
+  247 |     TaskHandle_t handle = sched_task_create( taskFunction,
+      |                           ^~~~~~~~~~~~~~~~~
+[ 74%] Linking C static library libsyscall.a
+[ 74%] Built target syscall
+[ 76%] Building C object kernel/mm/CMakeFiles/mm.dir/src/mmu.c.obj
+[ 78%] Building C object kernel/mm/CMakeFiles/mm.dir/src/pmm.c.obj
+[ 80%] Building C object kernel/mm/CMakeFiles/mm.dir/src/vmm.c.obj
+[ 82%] Building C object kernel/mm/CMakeFiles/mm.dir/src/heap_alloc.c.obj
+[ 85%] Building C object kernel/mm/CMakeFiles/mm.dir/src/mm.c.obj
+[ 87%] Linking C static library libmm.a
+[ 87%] Built target mm
+[ 89%] Building C object kernel/task/CMakeFiles/task.dir/src/ktask.c.obj
+[ 91%] Linking C static library libtask.a
+[ 91%] Built target task
+[ 93%] Building C object kernel/loader/CMakeFiles/loader.dir/src/loader.c.obj
+[ 95%] Linking C static library libloader.a
+[ 95%] Built target loader
+[ 97%] Building C object kernel/CMakeFiles/Zelix.dir/main.c.obj
+[100%] Linking C executable Zelix
+[100%] Built target Zelix

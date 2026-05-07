@@ -7,6 +7,7 @@
 
 
 int task_started = 0;
+static int next_pid = 0;
 
 int is_user_task(struct task *t)
 {
@@ -26,6 +27,11 @@ struct task *alloc_task(void)
     if (!t) return NULL;
 
     memset(t, 0, sizeof(*t));
+
+    INIT_LIST_HEAD(&t->children);
+    INIT_LIST_HEAD(&t->sibling);
+    INIT_LIST_HEAD(&t->tasks);
+
     return t;
 }
 
@@ -58,6 +64,8 @@ static void kernel_task_entry(void *arg)
     if (t->entry != NULL) {
         arch_task_setup_frame_context(t);
         return_to_user(t->frame_ctx);
+        printf("user task returned unreachable!!!\n");
+        __builtin_unreachable();
     }
 
     for (;;) {
@@ -84,8 +92,10 @@ struct task *task_create(const char *name, task_entry_t entry, enum task_type ty
 
     t->entry = entry;
     t->arg = arg;
-    t->state = TASK_RUNNING;
+    t->state = TASK_READY;
     t->type = type;
+    t->pid = next_pid++;
+
     if(type == TASK_TYPE_USER_PROCESS) {
         t->entry_virt = USER_ENTRY_ADDRESS; /* For user processes, we use a fixed virtual address for the entry point. */
         t->user_stack_top = (uint32_t*)USER_STACK_ADDRESS;
@@ -111,8 +121,6 @@ struct task *task_create(const char *name, task_entry_t entry, enum task_type ty
         return NULL;
     }
 
-    t->next = task_list;
-    task_list = t;
     sched_bind_task(t->tcb, t);
     return t;
 }

@@ -16,6 +16,7 @@ BaseType_t sched_task_create(TaskFunction_t entry,
                              TaskHandle_t *handle);
 void sched_start(void);
 void sched_delay(TickType_t ticks);
+void sched_task_wake_up(struct task *task);
 TickType_t sched_task_get_tick_count(void);
 TaskHandle_t sched_current_handle(void);
 

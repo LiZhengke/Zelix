@@ -3,6 +3,7 @@ add_library(sched STATIC
 )
 
 target_include_directories(sched PRIVATE
+    ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_SOURCE_DIR}/kernel/include
     ${CMAKE_SOURCE_DIR}/kernel/sched/inc
     ${CMAKE_SOURCE_DIR}/kernel/task/inc

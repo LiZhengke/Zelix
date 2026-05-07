@@ -41,7 +41,6 @@ static int sys_exec(uint32_t a0,uint32_t a1,uint32_t a2,uint32_t a3,uint32_t a4)
 static int sys_read(uint32_t a0,uint32_t a1,uint32_t a2,uint32_t a3,uint32_t a4);
 static int sys_exit(uint32_t a0,uint32_t a1,uint32_t a2,uint32_t a3,uint32_t a4);
 
-
 const syscall_t syscall_table[SYS_MAX] = {
     sys_yield,
     sys_write,
@@ -245,14 +244,15 @@ static int sys_task_create(uint32_t a0,uint32_t a1,uint32_t a2,uint32_t a3,uint3
         return -EINVAL;
     }
 
-    TaskHandle_t handle = sched_task_create( taskFunction,
+    TaskHandle_t handle;
+    BaseType_t ret = sched_task_create( taskFunction,
                                 taskName,
                                 stackDepth,
                                 pvParameters,
                                 priority,
-                                pxTCB );
+                                &handle );
 
-    if (handle == NULL) {
+    if (ret != pdPASS) {
         printf("Failed to create task\n");
         vPortFree(pxTCB);
         vPortFree(pxKernelStack);
@@ -287,70 +287,174 @@ static int sys_get_task_name(uint32_t a0,uint32_t a1,uint32_t a2,uint32_t a3,uin
     return 0;
 }
 
-static int sys_exec(uint32_t a0,uint32_t a1,uint32_t a2,uint32_t a3,uint32_t a4)
+static int do_exec(struct task *task,
+            const char *path,
+            const void *arg)
 {
-    const char* path = (const char *)a0;
-    const void* arg = (const void*)a1;
-    struct task *current;
     mm_struct *new_mm, *old_mm;
-
-    (void)a2; (void)a3; (void)a4;
     void *entry;
-    if (path == NULL)
+
+    if (task == NULL || path == NULL)
         return -EINVAL;
 
-    current = current_task();
-    if (current == NULL)
-        return -EINVAL;
+    task->arg = (void *)arg;
+    task->state = TASK_RUNNING;
+    task->type = TASK_TYPE_USER_PROCESS;
 
-    current->arg = (void *)arg;
-    current->state = TASK_RUNNING;
-    current->type = TASK_TYPE_USER_PROCESS;
-    current->entry_virt = USER_ENTRY_ADDRESS;
-    current->user_stack_top = (uint32_t*)USER_STACK_ADDRESS;
-    current->user_stack_size = USER_STACK_SIZE / sizeof(StackType_t);
+    task->entry_virt = USER_ENTRY_ADDRESS;
+    task->user_stack_top = (uint32_t*)USER_STACK_ADDRESS;
+    task->user_stack_size =
+        USER_STACK_SIZE / sizeof(StackType_t);
 
-    new_mm = mm_create(current, path);
-    if (new_mm == NULL) {
-        return -EINVAL;
-    }
+    // 创建新地址空间
+    new_mm = mm_create(task, path);
+    if (new_mm == NULL)
+        return -ENOMEM;
 
+    // 加载 ELF
     entry = elf_load(path, new_mm->pgd, false);
     if (entry == NULL) {
         mm_destroy(new_mm);
-        return -EINVAL;
+        return -ENOEXEC;
     }
 
-    //TODO : should be better
-    /*char *name = pcTaskGetName(NULL);
-    uint32_t i;
-    for (i = 0; i < configMAX_TASK_NAME_LEN; i++)
-        name[i] = path[i];
-    name[i] = '\0';*/
+    task->entry = (task_entry_t)entry;
+    task->entry_virt = (uint32_t)entry;
+    task->started = 1;
 
-    current->entry = (task_entry_t)entry;
-    current->entry_virt = (uint32_t)entry;
-    current->started = 1;
-    old_mm = current->mm;
-    current->mm = new_mm;
+    old_mm = task->mm;
+    task->mm = new_mm;
 
-    /* Switch to the new address space and start executing the new task. */
-    printf("load new page dir\n");
-    load_page_directory(current->mm->pgd_phys);
-    printf("Setting up frame context...\n");
-    arch_task_setup_frame_context(current);
+    // setup trapframe
+    arch_task_setup_frame_context(task);
 
-    printf("Destroying current task\n");
-    if (old_mm != NULL) {
+    // 旧 mm 回收
+    if (old_mm)
         mm_destroy(old_mm);
-    }
 
-    printf("Switching to the new task at entry 0x%x\n", (uint32_t)entry);
+    return 0;
+}
+
+static int sys_exec(uint32_t a0,
+                    uint32_t a1,
+                    uint32_t a2,
+                    uint32_t a3,
+                    uint32_t a4)
+{
+    const char *path = (const char *)a0;
+    const void *arg = (const void *)a1;
+
+    struct task *current = current_task();
+
+    int ret;
+
+    (void)a2;
+    (void)a3;
+    (void)a4;
+
+    ret = do_exec(current, path, arg);
+    if (ret < 0)
+        return ret;
+
+    // 切换地址空间
+    load_page_directory(current->mm->pgd_phys);
+
+    // 进入用户态
     return_to_user(current->frame_ctx);
 
     __builtin_unreachable();
-    return 0;
 }
+
+static void spawn_task_main(void *arg)
+{
+    (void)arg;
+
+    for (;;) {
+         TickType_t tickCount = sched_task_get_tick_count();
+         if( tickCount % 100 == 0 )  /* Print every 100 ticks. */
+         {
+             printf( "spawn_task_main Tick: %lu cpl=%d\n", ( unsigned long ) tickCount, get_cpl() );
+         }
+         sched_delay(100);
+     }
+}
+static int sys_spawn(uint32_t a0,
+                     uint32_t a1,
+                     uint32_t a2,
+                     uint32_t a3,
+                     uint32_t a4)
+{
+    const char *path = (const char *)a0;
+    const void *arg  = (const void *)a1;
+
+    struct task *task;
+    int ret;
+
+    (void)a2;
+    (void)a3;
+    (void)a4;
+
+    // 创建新 task
+    task = task_create(path,
+                       spawn_task_main,
+                       TASK_TYPE_USER_PROCESS,
+                       USER_STACK_SIZE / sizeof(StackType_t),
+                       NULL);
+
+    if (!task)
+        return -ENOMEM;
+
+    // 对新 task 执行 exec
+    ret = do_exec(task, path, arg);
+    if (ret < 0) {
+        task_destroy(task);
+        return ret;
+    }
+
+    // 加入调度
+    sched_task_wake_up(task);
+
+    return task->pid;
+}
+
+#ifdef SYS_FORK_ENABLE
+static int sys_fork(uint32_t a0,uint32_t a1,uint32_t a2,uint32_t a3,uint32_t a4)
+{
+    struct task *current = current_task();
+    struct task *parent = current;
+
+    struct task *child = alloc_task();  // 你已有或实现一个
+    child->pid = next_pid++;
+
+    /* 1️⃣ 复制地址空间（先用“深拷贝”，别一上来就 COW） */
+    child->mm = mm_clone(parent->mm);
+
+    /* 2️⃣ 复制 kernel stack（关键） */
+    child->kstack_base = alloc_kstack();
+    memcpy(child->kstack_base, parent->kstack_base, KSTACK_SIZE);
+
+    /* 3️⃣ 修正 child 的 trap_frame 指针 */
+    uint32_t offset = (uint32_t)parent->frame_ctx - (uint32_t)parent->kstack_base;
+    child->frame_ctx = (struct trap_frame *)((uint32_t)child->kstack_base + offset);
+
+    /* 4️⃣ fork 语义 */
+    child->frame_ctx->eax = 0;                // 子进程返回 0
+    parent->frame_ctx->eax = child->pid;      // 父进程返回 pid
+
+    /* 5️⃣ 关系 */
+    child->parent = parent;
+    list_add(&child->sibling, &parent->children);
+
+    /* 6️⃣ 状态 */
+    child->state = TASK_READY;
+    child->is_user = true;
+
+    /* 7️⃣ 加入调度（通过 adapter → FreeRTOS） */
+    sched_add_task(child);
+
+    return child->pid;
+}
+#endif /* SYS_FORK_ENABLE */
 
 static int sys_exit(uint32_t a0,uint32_t a1,uint32_t a2,uint32_t a3,uint32_t a4)
 {

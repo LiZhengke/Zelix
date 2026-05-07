@@ -3,6 +3,7 @@ add_library(task STATIC
 )
 
 target_include_directories(task PRIVATE
+    ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_SOURCE_DIR}/kernel/include
     ${CMAKE_SOURCE_DIR}/kernel/libc/inc
     ${CMAKE_SOURCE_DIR}/kernel/sched/inc

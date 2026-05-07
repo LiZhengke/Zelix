@@ -8,6 +8,7 @@ add_library(mm STATIC
 )
 
 target_include_directories(mm PRIVATE
+    ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_SOURCE_DIR}/kernel/include
     ${CMAKE_SOURCE_DIR}/kernel/libc/inc
     ${CMAKE_SOURCE_DIR}/kernel/mm/inc

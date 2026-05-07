@@ -27,6 +27,25 @@ BaseType_t sched_task_create(TaskFunction_t entry,
     return xTaskCreate(entry, name, stack_size, arg, priority, handle);
 }
 
+void sched_task_suspend(TaskHandle_t handle)
+{
+    vTaskSuspend(handle);
+}
+
+void sched_task_wake_up(struct task *task)
+{
+    if (task == NULL)
+        return;
+
+    if (task->state == TASK_READY ||
+        task->state == TASK_RUNNING)
+        return;
+
+    task->state = TASK_READY;
+
+    vTaskResume(task->tcb);
+}
+
 void sched_start(void)
 {
     vTaskStartScheduler();

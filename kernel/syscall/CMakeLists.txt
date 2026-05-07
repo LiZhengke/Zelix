@@ -5,6 +5,7 @@ add_library(syscall STATIC
 )
 
 target_include_directories(syscall PRIVATE
+    ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_SOURCE_DIR}/kernel/syscall/inc
     ${CMAKE_SOURCE_DIR}/kernel/sched/inc
     ${CMAKE_SOURCE_DIR}/kernel/task/inc

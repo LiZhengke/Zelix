@@ -11,6 +11,8 @@
 #define ENOSYS   38   // Syscall does not exist
 #define EINVAL   22   // Invalid argument
 #define EPERM     1   // Permission denied
+#define ENOMEM    12  // Out of memory
+#define ENOEXEC   8   // Exec format error
 
 enum {
     SYS_YIELD = 0,

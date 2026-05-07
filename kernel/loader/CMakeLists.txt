@@ -3,6 +3,7 @@ add_library(loader STATIC
 )
 
 target_include_directories(loader PRIVATE
+    ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_SOURCE_DIR}/kernel/include
     ${CMAKE_SOURCE_DIR}/kernel/fatfs/inc
     ${CMAKE_SOURCE_DIR}/kernel/loader/inc

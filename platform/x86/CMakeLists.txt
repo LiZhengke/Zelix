@@ -12,6 +12,7 @@ add_library(x86_platform STATIC
 )
 
 target_include_directories(x86_platform PRIVATE
+    ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_SOURCE_DIR}/kernel/include
     ${CMAKE_SOURCE_DIR}/kernel/libc/inc
     ${CMAKE_SOURCE_DIR}/kernel/mm/inc

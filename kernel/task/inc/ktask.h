@@ -1,8 +1,11 @@
 #pragma once
 
 #include <stdint.h>
+#include <stdbool.h>
+
 #include "ktask_internal.h"
 #include "mm.h"
+#include "zelix/zlist.h"
 
 #define USER_STACK_SIZE (16*4096)
 #define KERNEL_STACK_SIZE (26*4096)
@@ -17,7 +20,9 @@ typedef void (*task_entry_t)(void *arg);
    task 状态
    ========================= */
 enum task_state {
+    TASK_READY,
     TASK_RUNNING,
+    TASK_BLOCKED,
     TASK_ZOMBIE,
     TASK_DEAD,
 };
@@ -59,8 +64,13 @@ struct task {
     /* 标志 */
     int started;
 
-    /* 简单链表（可扩展） */
-    struct task *next;
+    int pid;
+    struct task *parent;
+    struct list_head sibling;
+    struct list_head children;
+    struct list_head tasks;
+
+    bool is_user;
 };
 
 /* API */
