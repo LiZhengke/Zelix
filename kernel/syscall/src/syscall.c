@@ -40,6 +40,7 @@ static int sys_get_task_name(uint32_t a0,uint32_t a1,uint32_t a2,uint32_t a3,uin
 static int sys_exec(uint32_t a0,uint32_t a1,uint32_t a2,uint32_t a3,uint32_t a4);
 static int sys_read(uint32_t a0,uint32_t a1,uint32_t a2,uint32_t a3,uint32_t a4);
 static int sys_exit(uint32_t a0,uint32_t a1,uint32_t a2,uint32_t a3,uint32_t a4);
+static int sys_spawn(uint32_t a0,uint32_t a1,uint32_t a2,uint32_t a3,uint32_t a4);
 
 const syscall_t syscall_table[SYS_MAX] = {
     sys_yield,
@@ -56,6 +57,7 @@ const syscall_t syscall_table[SYS_MAX] = {
     sys_tick_count,
     sys_get_task_name,
     sys_exec,
+    sys_spawn,
     sys_read,
 };
 
@@ -417,6 +419,14 @@ static int sys_spawn(uint32_t a0,
     return task->pid;
 }
 
+static int sys_waitpid(uint32_t a0,
+                       uint32_t a1,
+                       uint32_t a2,
+                       uint32_t a3,
+                       uint32_t a4)
+{
+
+}
 #ifdef SYS_FORK_ENABLE
 static int sys_fork(uint32_t a0,uint32_t a1,uint32_t a2,uint32_t a3,uint32_t a4)
 {

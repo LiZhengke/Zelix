@@ -6,6 +6,7 @@
 #include "ktask_internal.h"
 #include "mm.h"
 #include "zelix/zlist.h"
+#include "zelix/zwait.h"
 
 #define USER_STACK_SIZE (16*4096)
 #define KERNEL_STACK_SIZE (26*4096)
@@ -65,16 +66,34 @@ struct task {
     int started;
 
     int pid;
+
+    // --- 固有属性：保留直接嵌入 ---
+    struct list_head global_node;   // 全系统任务表
+    struct list_head sched_node;    // 调度链表（仅用于 run_queue 或 zombie_queue）
+
+     /* 父子关系 */
     struct task *parent;
-    struct list_head sibling;
-    struct list_head children;
-    struct list_head tasks;
+    struct list_head sibling_node; // 在父进程的 children_head 链表中的节点
+    struct list_head children_head;
 
     bool is_user;
+
+    /*
+     * 当前阻塞在哪个 wait queue
+     */
+    wait_queue_t *wait_queue;
+
+    /*
+     * 用于插入 wait queue
+     */
+    wait_node_t wait_node;
+
+     /* waitpid 专用 */
+    wait_queue_t child_exit_wq;
 };
 
 /* API */
-struct task *task_create(const char *name, task_entry_t entry, enum task_type type, size_t user_stack_size, void *arg);
+struct task *task_create(const char *name, task_entry_t entry, enum task_type type, size_t user_stack_size, struct task *parent, void *arg);
 struct task *task_system_start(const char *name, task_entry_t entry, enum task_type type, size_t user_stack_size, void *arg);
 void task_scheduler_start(void);
 void task_destroy(struct task *t);
@@ -83,3 +102,4 @@ int is_user_task(struct task *t);
 int is_kernel_thread(struct task *t);
 struct task *alloc_task(void);
 void task_exit(int code);
+

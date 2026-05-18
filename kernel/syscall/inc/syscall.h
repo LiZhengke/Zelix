@@ -29,6 +29,8 @@ enum {
     SYS_TICK_COUNT,
     SYS_GET_TASK_NAME,
     SYS_EXEC,
+    SYS_SPAWN,
+    SYS_WAITPID,
     SYS_READ,
     SYS_MAX
 };

@@ -5,9 +5,16 @@
 #include "stdio.h"
 #include "task_context.h"
 
+// 全局定义的各链表头
+LIST_HEAD(all_tasks);
+LIST_HEAD(run_queue);
+LIST_HEAD(wait_queue);
+LIST_HEAD(zombie_queue);
 
 int task_started = 0;
 static int next_pid = 0;
+
+
 
 int is_user_task(struct task *t)
 {
@@ -28,9 +35,12 @@ struct task *alloc_task(void)
 
     memset(t, 0, sizeof(*t));
 
-    INIT_LIST_HEAD(&t->children);
-    INIT_LIST_HEAD(&t->sibling);
-    INIT_LIST_HEAD(&t->tasks);
+    INIT_LIST_HEAD(&t->wait_node.link);
+    t->wait_node.task = t;
+    t->wait_queue = NULL;
+
+     /* waitpid 专用 */
+    INIT_LIST_HEAD(&t->child_exit_wq.tasks);
 
     return t;
 }
@@ -78,7 +88,7 @@ static void kernel_task_entry(void *arg)
     }
 }
 
-struct task *task_create(const char *name, task_entry_t entry, enum task_type type, size_t user_stack_size, void *arg)
+struct task *task_create(const char *name, task_entry_t entry, enum task_type type, size_t user_stack_size, struct task *parent, void *arg)
 {
     struct task *t = alloc_task();
     BaseType_t status;
@@ -120,14 +130,29 @@ struct task *task_create(const char *name, task_entry_t entry, enum task_type ty
         sched_task_free(t);
         return NULL;
     }
+    // 初始化自己的孩子链表头
+    INIT_LIST_HEAD(&t->children_head);
 
+    // 1. 加入全局链表
+    list_add_tail(&t->global_node, &all_tasks);
+
+    // 2. 处理家族关系
+    t->parent = parent;
+    if (parent) {
+        list_add_tail(&t->sibling_node, &parent->children_head);
+    } else {
+        INIT_LIST_HEAD(&t->sibling_node); // 孤儿或 init 进程
+    }
+
+    // 3. 初始进入运行队列
+    list_add_tail(&t->sched_node, &run_queue);
     sched_bind_task(t->tcb, t);
     return t;
 }
 
 struct task *task_system_start(const char *name, task_entry_t entry, enum task_type type, size_t user_stack_size, void *arg)
 {
-    struct task *task = task_create(name, entry, type, user_stack_size, arg);
+    struct task *task = task_create(name, entry, type, user_stack_size, NULL, arg);
 
     if (task == NULL) {
         return NULL;
